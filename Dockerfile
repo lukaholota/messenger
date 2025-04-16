@@ -10,6 +10,4 @@ COPY ./app ./app
 
 EXPOSE 8000
 
-ENTRYPOINT ["top", "-b"]
-
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
