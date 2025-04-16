@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    container_name: messenger-api
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - ./app:/app
+    ports:
+      - "8007:8000"
+    depends_on:
+      - db
+
+  db:
+    image: mysql:8
+    container_name: messenger-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "3308:3306"
+    volumes:
+      - messenger_db_data:/var/lib/mysql
+
+volumes:
+  messenger_db_data:
