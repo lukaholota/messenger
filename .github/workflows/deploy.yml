@@ -1,0 +1,66 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    name: Deploy Application
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+
+      - name: Add known host key
+        run: |
+          mkdir -p ~/.shh
+          echo "${{ secrets.PROD_SERVER_KNOWN_HOST }}" >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Create or Update .env file on server
+        run: |
+          ssh ${{ secrets.PROD_SERVER_USER_HOST }} "
+          echo 'Creating/Updating .env...'
+          cat > /home/luka/messenger/.env <<EOF
+          # --- Production Environment Variables ---
+          # Згенеровано автоматично GitHub Actions deploy workflow
+          
+          DEBUG=False
+          SQLALCHEMY_ECHO=False
+          
+          MYSQL_USER=${{ secrets.PROD_DB_USER }}
+          MYSQL_PASSWORD='${{ secrets.PROD_DB_PASSWORD }}' 
+          MYSQL_HOST=${{ secrets.PROD_DB_HOST }}
+          MYSQL_NAME=${{ secrets.PROD_DB_NAME }}
+          
+          EOF
+          echo '.env updated successfully'
+          "
+
+      - name: Pull latest code and restart services
+        run: |
+          ssh ${{ secrets.PROD_SERVER_USER_HOST }} '
+          echo "deploying Application..."
+          cd /home/luka/messenger || exit 1
+          
+          echo "Pulling latest code from main branch..."
+          git checkout main
+          git pull origin main
+          
+          echo "Starting docker-compose..."
+          docker-compose up -d --build --force-recreate api
+          
+          echo "Cleaning up old docker image..."
+          docker image prune -f
+          
+          echo "Deployment finished!"
+          '
+            
+          
