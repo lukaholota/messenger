@@ -71,7 +71,7 @@ jobs:
       - name: Wait for MySQL Service to be ready
         run: |
           echo "Waiting for MySQL..."
-          until mysqladmin ping -h $TEST_DB_HOST -p $TEST_DB_PORT -u $TEST_DB_USER -p$TEST_DB_PASSWORD --silent; do
+          until mysqladmin ping -h $TEST_DB_HOST -p $TEST_DB_PORT -u $TEST_DB_USER -p $TEST_DB_PASSWORD --silent; do
             echo "MySQL is unavailable - sleeping"
             sleep 1;
           done
