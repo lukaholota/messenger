@@ -1,9 +1,9 @@
 import pytest
-from typing import TYPE_CHECKING, Callable, Coroutine, Any
+from typing import Callable, Coroutine, Any
 from sqlalchemy import select
 from app.models.user import User
-if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncSession
+
+from sqlalchemy.ext.asyncio import AsyncSession
 
 pytestmark = pytest.mark.asyncio
 

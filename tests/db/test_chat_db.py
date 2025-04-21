@@ -1,12 +1,8 @@
-from typing import TYPE_CHECKING, Callable, Coroutine, Any
-
+from typing import Callable, Coroutine, Any
 from sqlalchemy import select
-
 from app.models.chat import Chat
 from app.models.message import Message
-
-if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def test_create_chat(

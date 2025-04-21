@@ -1,11 +1,10 @@
 import pytest
-from typing import TYPE_CHECKING, Callable, Coroutine, Any
+from typing import Callable, Coroutine, Any
 from sqlalchemy import select
 
-if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncSession
-    from app.models.user import User
-    from app.models.chat import Chat
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.models.user import User
+from app.models.chat import Chat
 
 from app.models.message import Message
 

@@ -1,7 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from typing import TYPE_CHECKING, Callable, Coroutine, Any
-
+from typing import Callable, Coroutine, Any
 from app.models.chat import Chat
 from app.models.chat_participant import ChatParticipant
 from app.models.user import User
