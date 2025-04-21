@@ -1,15 +1,35 @@
-import os
+from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from dotenv import load_dotenv
+from app.core.config import settings
 
-load_dotenv()
 
-DATABASE_URL = os.getenv('DATABASE_URL')
+if not settings.DATABASE_URL:
+    raise ValueError("DATABASE_URL не може бути визначено з налаштувань")
 
-if DATABASE_URL is None:
-    raise ValueError("DATABASE_URL is not in (.env)")
+engine = create_async_engine(
+    settings.DATABASE_URL,
+    echo=settings.SQLALCHEMY_ECHO,
+    future=True
+)
 
-engine = create_async_engine(DATABASE_URL, echo=True, future=True)
+
+AsyncSessionFactory = async_sessionmaker(
+    bind=engine,
+    autoflush=False,
+    expire_on_commit=False,
+    class_=AsyncSession
+)
+
+
+async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
+    async with AsyncSessionFactory() as session:
+        try:
+            yield session
+        except Exception as e:
+            await session.rollback()
+            raise e
+        finally:
+            pass
 
 
 

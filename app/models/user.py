@@ -11,7 +11,7 @@ class User(Base):
 
     user_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
-    display_name: Mapped[int] = mapped_column(String(50), default=None)
+    display_name: Mapped[str] = mapped_column(String(50), default=None)
     password: Mapped[str] = mapped_column(String(255), nullable=False)
     email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
 

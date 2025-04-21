@@ -40,6 +40,8 @@ jobs:
           MYSQL_HOST=${{ secrets.PROD_DB_HOST }}
           MYSQL_NAME=${{ secrets.PROD_DB_NAME }}
           
+          SECRET_KEY=${{ secrets.SECRET_KEY }}
+          
           EOF
           echo '.env updated successfully'
           "
