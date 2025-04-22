@@ -13,5 +13,12 @@ class Chat(Base):
     name: Mapped[str] = mapped_column(String(255), index=True)
     is_group: Mapped[bool] = mapped_column(Boolean, default=False)
 
-    participants: Mapped[list["User"]] = relationship("User", secondary="ChatParticipant", back_populates="chats")
-    messages: Mapped[list["Message"]] = relationship('Message', back_populates='chat')
+    participants: Mapped[list["User"]] = relationship(
+        "User",
+        secondary="ChatParticipant",
+        back_populates="chats"
+    )
+    messages: Mapped[list["Message"]] = relationship(
+        'Message',
+        back_populates='chat'
+    )

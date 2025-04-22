@@ -4,7 +4,8 @@ from typing import AsyncGenerator, Generator, Callable, Coroutine, Any
 
 import pytest
 import pytest_asyncio
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import (AsyncSession, create_async_engine,
+                                    async_sessionmaker)
 from sqlalchemy.pool import NullPool
 
 from app.db.base import Base
@@ -18,7 +19,8 @@ TEST_DB_NAME = os.getenv("TEST_DB_NAME", "messenger_test_db")
 TEST_DB_HOST = os.getenv("TEST_DB_HOST", "127.0.0.1")
 TEST_DB_PORT = os.getenv("TEST_DB_PORT", "3306")
 
-DATABASE_URL = f"mysql+aiomysql://{TEST_DB_USER}:{TEST_DB_PASSWORD}@{TEST_DB_HOST}:{TEST_DB_PORT}/{TEST_DB_NAME}"
+DATABASE_URL = (f"mysql+aiomysql://{TEST_DB_USER}:{TEST_DB_PASSWORD}"
+                f"@{TEST_DB_HOST}:{TEST_DB_PORT}/{TEST_DB_NAME}")
 
 
 @pytest.fixture(scope="session")
@@ -30,7 +32,7 @@ def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
 
 @pytest_asyncio.fixture(scope='session')
 async def async_engine():
-    engine = create_async_engine(DATABASE_URL, pull_class=NullPool)
+    engine = create_async_engine(DATABASE_URL, pool_class=NullPool)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield engine
@@ -58,7 +60,8 @@ async def db_session(async_engine) -> AsyncGenerator[AsyncSession, None]:
 
 
 @pytest_asyncio.fixture
-async def user_factory(db_session: AsyncSession) -> Callable[..., Coroutine[Any, Any, User]]:
+async def user_factory(db_session: AsyncSession) -> (
+        Callable)[..., Coroutine[Any, Any, User]]:
     async def _create_user(
             username: str,
             email: str,
@@ -79,7 +82,8 @@ async def user_factory(db_session: AsyncSession) -> Callable[..., Coroutine[Any,
 
 
 @pytest_asyncio.fixture
-async def chat_factory(db_session: AsyncSession) -> Callable[..., Coroutine[Any, Any, Chat]]:
+async def chat_factory(db_session: AsyncSession) -> (
+        Callable)[..., Coroutine[Any, Any, Chat]]:
     async def _create_chat(is_group: bool) -> Chat:
         new_chat = Chat(name='test', is_group=is_group)
         db_session.add(new_chat)
@@ -90,8 +94,13 @@ async def chat_factory(db_session: AsyncSession) -> Callable[..., Coroutine[Any,
 
 
 @pytest_asyncio.fixture
-async def message_factory(db_session: AsyncSession) -> Callable[..., Coroutine[Any, Any, Message]]:
-    async def _create_message(sender: User, chat: Chat, content: str) -> Message:
+async def message_factory(db_session: AsyncSession) -> (
+        Callable)[..., Coroutine[Any, Any, Message]]:
+    async def _create_message(
+            sender: User,
+            chat: Chat,
+            content: str
+    ) -> Message:
         new_message = Message(chat=chat, sender=sender, content=content)
         db_session.add(new_message)
         await db_session.commit()

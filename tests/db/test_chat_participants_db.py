@@ -21,18 +21,30 @@ async def test_add_multiple_participants_to_group_chat(
     assert user2.user_id is not None
     assert user3.user_id is not None
 
-    participant1 = ChatParticipant(user_id=user1.user_id, chat_id=group_chat.chat_id)
-    participant2 = ChatParticipant(user_id=user2.user_id, chat_id=group_chat.chat_id)
-    participant3 = ChatParticipant(user_id=user3.user_id, chat_id=group_chat.chat_id)
+    participant1 = ChatParticipant(
+        user_id=user1.user_id,
+        chat_id=group_chat.chat_id
+    )
+    participant2 = ChatParticipant(
+        user_id=user2.user_id,
+        chat_id=group_chat.chat_id
+    )
+    participant3 = ChatParticipant(
+        user_id=user3.user_id,
+        chat_id=group_chat.chat_id
+    )
 
     db_session.add_all([participant1, participant2, participant3])
     await db_session.commit()
 
-    query = select(ChatParticipant).where(ChatParticipant.chat_id == group_chat.chat_id)
+    query = select(ChatParticipant).where(
+        ChatParticipant.chat_id == group_chat.chat_id
+    )
     result = await db_session.execute(query)
     participants_in_db = result.scalars().all()
 
-    participants_ids = {participant.user_id for participant in participants_in_db}
+    participants_ids = {participant.user_id
+                        for participant in participants_in_db}
 
     for user in [user1, user2, user3]:
         assert user.user_id in participants_ids
