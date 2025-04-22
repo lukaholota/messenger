@@ -19,6 +19,8 @@ TEST_DB_NAME = os.getenv("TEST_DB_NAME", "messenger_test_db")
 TEST_DB_HOST = os.getenv("TEST_DB_HOST", "127.0.0.1")
 TEST_DB_PORT = os.getenv("TEST_DB_PORT", "3306")
 
+
+
 DATABASE_URL = (f"mysql+aiomysql://{TEST_DB_USER}:{TEST_DB_PASSWORD}"
                 f"@{TEST_DB_HOST}:{TEST_DB_PORT}/{TEST_DB_NAME}")
 

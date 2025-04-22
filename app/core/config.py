@@ -7,6 +7,7 @@ ROOT_DIR = pathlib.Path(__file__).parent.parent.parent
 
 ENV_FILE_PATH = ROOT_DIR / '.env'
 
+
 class Settings(BaseSettings):
     MYSQL_HOST: str
     MYSQL_USER: str

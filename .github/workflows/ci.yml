@@ -49,6 +49,11 @@ jobs:
           --health-retries 5
 
     env:
+      MYSQL_HOST: 127.0.0.1
+      MYSQL_USER: test_user
+      MYSQL_PASSWORD: test_password
+      MYSQL_DATABASE: messenger_test_db
+
       TEST_DB_USER: test_user
       TEST_DB_PASSWORD: test_password
       TEST_DB_NAME: messenger_test_db
