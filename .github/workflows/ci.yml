@@ -59,7 +59,7 @@ jobs:
       TEST_DB_NAME: messenger_test_db
       TEST_DB_HOST: 127.0.0.1
       TEST_DB_PORT: 3306
-      DATABASE_URL: mysql+aiomysql://$${TEST_DB_USER}:$${TEST_DB_PASSWORD}@$${TEST_DB_HOST}:$${TEST_DB_PORT}/$${TEST_DB_NAME}
+      DATABASE_URL: mysql+aiomysql://test_user:test_password@127.0.0.1:3306/messenger_test_db?charset=utf8mb4
 
       SECRET_KEY: ci_test_secret_key
       SQLALCHEMY_ECHO: False
