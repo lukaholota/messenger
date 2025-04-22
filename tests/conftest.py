@@ -13,16 +13,7 @@ from app.models.chat import Chat
 from app.models.message import Message
 from app.models.user import User
 
-TEST_DB_USER = os.getenv("TEST_DB_USER", "test_user")
-TEST_DB_PASSWORD = os.getenv("TEST_DB_PASSWORD", "test_password")
-TEST_DB_NAME = os.getenv("TEST_DB_NAME", "messenger_test_db")
-TEST_DB_HOST = os.getenv("TEST_DB_HOST", "127.0.0.1")
-TEST_DB_PORT = os.getenv("TEST_DB_PORT", "3306")
-
-
-
-DATABASE_URL = (f"mysql+aiomysql://{TEST_DB_USER}:{TEST_DB_PASSWORD}"
-                f"@{TEST_DB_HOST}:{TEST_DB_PORT}/{TEST_DB_NAME}")
+DATABASE_URL = os.getenv('DATABASE_URL', None)
 
 
 @pytest.fixture(scope="session")
