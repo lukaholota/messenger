@@ -6,14 +6,24 @@ import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import (AsyncSession, create_async_engine,
                                     async_sessionmaker)
-from sqlalchemy.pool import NullPool
 
 from app.db.base import Base
 from app.models.chat import Chat
 from app.models.message import Message
 from app.models.user import User
 
-DATABASE_URL = os.getenv('DATABASE_URL', None)
+DATABASE_URL = os.getenv('DATABASE_URL')
+if not DATABASE_URL:
+    print("WARNING: DATABASE_URL environment variable "
+          "not set. Constructing from TEST_DB_... vars.")
+    TEST_DB_USER = os.getenv("TEST_DB_USER", "test_user")
+    TEST_DB_PASSWORD = os.getenv("TEST_DB_PASSWORD", "test_password")
+    TEST_DB_NAME = os.getenv("TEST_DB_NAME", "messenger_test_db")
+    TEST_DB_HOST = os.getenv("TEST_DB_HOST", "127.0.0.1")
+    TEST_DB_PORT = os.getenv("TEST_DB_PORT", "3306")
+    DATABASE_URL = (f"mysql+aiomysql://{TEST_DB_USER}:{TEST_DB_PASSWORD}"
+                    f"@{TEST_DB_HOST}:{TEST_DB_PORT}/{TEST_DB_NAME}"
+                    f"?charset=utf8mb4")
 
 
 @pytest.fixture(scope="session")
@@ -25,7 +35,7 @@ def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
 
 @pytest_asyncio.fixture(scope='session')
 async def async_engine():
-    engine = create_async_engine(DATABASE_URL, pool_class=NullPool)
+    engine = create_async_engine(DATABASE_URL)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield engine
