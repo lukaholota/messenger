@@ -6,11 +6,13 @@ import pytest
 import pytest_asyncio
 from sqlalchemy.ext.asyncio import (AsyncSession, create_async_engine,
                                     async_sessionmaker)
+from httpx import AsyncClient, ASGITransport
 
+from app.main import app
 from app.db.base import Base
+from app.models.user import User
 from app.models.chat import Chat
 from app.models.message import Message
-from app.models.user import User
 
 DATABASE_URL = os.getenv('DATABASE_URL')
 if not DATABASE_URL:
@@ -60,6 +62,16 @@ async def db_session(async_engine) -> AsyncGenerator[AsyncSession, None]:
         if transaction.is_active:
             await transaction.rollback()
         await connection.close()
+
+
+@pytest_asyncio.fixture(scope='function')
+async def async_client():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(
+            transport=transport,
+            base_url='http://test'
+    ) as client:
+        yield client
 
 
 @pytest_asyncio.fixture
