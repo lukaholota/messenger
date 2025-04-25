@@ -24,12 +24,12 @@ async def test_create_message_with_user_in_private_chat(
     assert test_private_chat.chat_id is not None
     assert test_private_chat.name == 'private_test_chat'
 
-    test_user = user_factory(name='test', email='<EMAIL>')
+    test_user = await user_factory(username='test', email='<EMAIL>')
     assert test_user.user_id is not None
     assert test_user.username == 'test'
 
     message_text = 'test_message_text'
-    new_message = message_factory(
+    new_message = await message_factory(
         chat=test_private_chat,
         sender=test_user,
         content=message_text

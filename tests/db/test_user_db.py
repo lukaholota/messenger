@@ -12,7 +12,7 @@ async def test_create_and_get_user(
         db_session: AsyncSession,
         user_factory: Callable[..., Coroutine[Any, Any, User]]
 ) -> None:
-    test_user = user_factory(
+    test_user = await user_factory(
         username="test",
         email="test@test.io",
         password='testpassword',

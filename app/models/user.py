@@ -30,7 +30,7 @@ class User(Base):
 
     chats: Mapped[list["Chat"]] = relationship(
         "Chat",
-        secondary="ChatParticipants",
+        secondary="chat_participant",
         back_populates="participants"
     )
     messages: Mapped[list["Message"]] = relationship(

@@ -15,7 +15,7 @@ class Chat(Base):
 
     participants: Mapped[list["User"]] = relationship(
         "User",
-        secondary="ChatParticipant",
+        secondary="chat_participant",
         back_populates="chats"
     )
     messages: Mapped[list["Message"]] = relationship(

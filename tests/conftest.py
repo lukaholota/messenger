@@ -14,16 +14,16 @@ from app.models.user import User
 from app.models.chat import Chat
 from app.models.message import Message
 
-DATABASE_URL = os.getenv('DATABASE_URL')
-if not DATABASE_URL:
-    print("WARNING: DATABASE_URL environment variable "
+TEST_DATABASE_URL = os.getenv('TEST_DATABASE_URL')
+if not TEST_DATABASE_URL:
+    print("WARNING: TEST_DATABASE_URL environment variable "
           "not set. Constructing from TEST_DB_... vars.")
     TEST_DB_USER = os.getenv("TEST_DB_USER", "test_user")
     TEST_DB_PASSWORD = os.getenv("TEST_DB_PASSWORD", "test_password")
     TEST_DB_NAME = os.getenv("TEST_DB_NAME", "messenger_test_db")
     TEST_DB_HOST = os.getenv("TEST_DB_HOST", "127.0.0.1")
     TEST_DB_PORT = os.getenv("TEST_DB_PORT", "3306")
-    DATABASE_URL = (f"mysql+aiomysql://{TEST_DB_USER}:{TEST_DB_PASSWORD}"
+    TEST_DATABASE_URL = (f"mysql+aiomysql://{TEST_DB_USER}:{TEST_DB_PASSWORD}"
                     f"@{TEST_DB_HOST}:{TEST_DB_PORT}/{TEST_DB_NAME}"
                     f"?charset=utf8mb4")
 
@@ -37,7 +37,7 @@ def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
 
 @pytest_asyncio.fixture(scope='session')
 async def async_engine():
-    engine = create_async_engine(DATABASE_URL)
+    engine = create_async_engine(TEST_DATABASE_URL)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield engine
@@ -99,8 +99,8 @@ async def user_factory(db_session: AsyncSession) -> (
 @pytest_asyncio.fixture
 async def chat_factory(db_session: AsyncSession) -> (
         Callable)[..., Coroutine[Any, Any, Chat]]:
-    async def _create_chat(is_group: bool) -> Chat:
-        new_chat = Chat(name='test', is_group=is_group)
+    async def _create_chat(is_group: bool, name: str='name') -> Chat:
+        new_chat = Chat(name=name, is_group=is_group)
         db_session.add(new_chat)
         await db_session.commit()
         await db_session.refresh(new_chat)

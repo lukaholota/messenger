@@ -12,9 +12,10 @@ class Message(Base):
         Integer,
         ForeignKey('chat.chat_id', ondelete='CASCADE')
     )
-    user_id: Mapped[int] = mapped_column(
+    user_id: Mapped[int | None] = mapped_column(
         Integer,
-        ForeignKey('user.user_id', ondelete='SET NULL')
+        ForeignKey('user.user_id', ondelete='SET NULL'),
+        nullable=True
     )
     content: Mapped[str] = mapped_column(Text, nullable=False)
     sent_at: Mapped[datetime] = mapped_column(
