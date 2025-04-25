@@ -1,6 +1,12 @@
 name: Deploy to Production
 
 on:
+  workflow_run:
+    workflows: [ CI Checks ]
+    types:
+      - completed
+    branches:
+      - main
   push:
     branches: [ main ]
 
