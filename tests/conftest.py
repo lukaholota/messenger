@@ -24,8 +24,8 @@ if not TEST_DATABASE_URL:
     TEST_DB_HOST = os.getenv("TEST_DB_HOST", "127.0.0.1")
     TEST_DB_PORT = os.getenv("TEST_DB_PORT", "3306")
     TEST_DATABASE_URL = (f"mysql+aiomysql://{TEST_DB_USER}:{TEST_DB_PASSWORD}"
-                    f"@{TEST_DB_HOST}:{TEST_DB_PORT}/{TEST_DB_NAME}"
-                    f"?charset=utf8mb4")
+                         f"@{TEST_DB_HOST}:{TEST_DB_PORT}/{TEST_DB_NAME}"
+                         f"?charset=utf8mb4")
 
 
 @pytest.fixture(scope="session")
@@ -99,7 +99,7 @@ async def user_factory(db_session: AsyncSession) -> (
 @pytest_asyncio.fixture
 async def chat_factory(db_session: AsyncSession) -> (
         Callable)[..., Coroutine[Any, Any, Chat]]:
-    async def _create_chat(is_group: bool, name: str='name') -> Chat:
+    async def _create_chat(is_group: bool, name: str = 'name') -> Chat:
         new_chat = Chat(name=name, is_group=is_group)
         db_session.add(new_chat)
         await db_session.commit()
@@ -116,7 +116,11 @@ async def message_factory(db_session: AsyncSession) -> (
             chat: Chat,
             content: str
     ) -> Message:
-        new_message = Message(chat=chat, sender=sender, content=content)
+        new_message = Message(
+            chat_id=chat.chat_id,
+            user_id=sender.user_id,
+            content=content
+        )
         db_session.add(new_message)
         await db_session.commit()
         await db_session.refresh(new_message)

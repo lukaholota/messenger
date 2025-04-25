@@ -5,6 +5,8 @@ from app.api.v1 import general
 from app.db.base import Base
 from app.db.session import engine
 
+import app.models as models  # noqa: F401
+
 app = FastAPI(
     title="Messenger API",
     description="API for the Messenger application",

@@ -2,14 +2,16 @@ from typing import Callable, Coroutine, Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.chat import Chat
-from app.models.message import Message
 
 
 async def test_create_chat(
         db_session: AsyncSession,
         chat_factory: Callable[..., Coroutine[Any, Any, Chat]],
 ) -> None:
-    test_private_chat = await chat_factory(name='test_private_chat', is_group=False)
+    test_private_chat = await chat_factory(
+        name='test_private_chat',
+        is_group=False
+    )
 
     assert test_private_chat.chat_id is not None
     assert test_private_chat.name == 'test_private_chat'
