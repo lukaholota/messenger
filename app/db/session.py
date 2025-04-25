@@ -31,6 +31,3 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
             raise e
         finally:
             pass
-
-
-
