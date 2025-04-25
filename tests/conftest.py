@@ -39,6 +39,7 @@ def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
 async def async_engine():
     engine = create_async_engine(TEST_DATABASE_URL)
     async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
     yield engine
     await engine.dispose()
@@ -80,13 +81,13 @@ async def user_factory(db_session: AsyncSession) -> (
     async def _create_user(
             username: str,
             email: str,
-            password: str = 'testpassword',
+            hashed_password: str = 'testpassword',
             display_name: str = '',
     ) -> User:
         new_user = User(
             username=username,
             email=email,
-            password=password,
+            hashed_password=hashed_password,
             display_name=display_name
         )
         db_session.add(new_user)
