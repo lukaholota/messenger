@@ -53,6 +53,7 @@ jobs:
       MYSQL_USER: test_user
       MYSQL_PASSWORD: test_password
       MYSQL_TEST_DATABASE: messenger_test_db
+      MYSQL_DATABASE: messenger_db
 
       TEST_DB_USER: test_user
       TEST_DB_PASSWORD: test_password
