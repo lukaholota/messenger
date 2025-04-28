@@ -15,9 +15,9 @@ async def root():
 
 @router.get("/users")
 async def users(
-        db_session: AsyncSession = Depends(get_db_session)
+        db: AsyncSession = Depends(get_db_session)
 ):
     query = select(User)
-    result = await db_session.execute(query)
+    result = await db.execute(query)
     db_users = result.scalars().all()
     return {"users": db_users}
