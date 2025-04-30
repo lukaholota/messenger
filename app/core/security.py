@@ -28,16 +28,20 @@ def create_access_token(
         expire_time = datetime.now(timezone.utc) + timedelta(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     data_to_encode['exp'] = expire_time
-    encoded_jwt = jwt.encode(data_to_encode, SECRET_KEY, algorithm=JWT_ALGORITHM)
+    encoded_jwt = jwt.encode(
+        data_to_encode,
+        SECRET_KEY,
+        algorithm=JWT_ALGORITHM
+    )
     return encoded_jwt
 
 
 def decode_access_token(token: str) -> str | None:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[JWT_ALGORITHM])
-        username: str | None = payload.get('sub')
-        if username is None:
+        user_id: str | None = payload.get('sub')
+        if user_id is None:
             return None
-        return username
+        return user_id
     except JWTError:
         return None

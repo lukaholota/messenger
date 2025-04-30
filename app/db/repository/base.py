@@ -11,45 +11,42 @@ UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
 
 
 class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
-    def __init__(self, model: Type[ModelType]):
+    def __init__(self, model: Type[ModelType], db: AsyncSession):
         self.model = model
         self._primary_key_name = inspect(model).primary_key[0].name
+        self.db = db
 
-    async def get_by_id(self, db: AsyncSession, id: Any) -> ModelType | None:
+    async def get_by_id(self, id: Any) -> ModelType | None:
         query = select(self.model).where(
             getattr(self.model, self._primary_key_name) == id
         )
-        result = await db.execute(query)
-        return result.scalar().one()
+        result = await self.db.execute(query)
+        return result.scalar_one_or_none()
 
     async def get_multi(
             self,
-            db: AsyncSession,
             *,
             skip: int = 0,
             limit: int = 100
     ):
         query = select(self.model).offset(skip).limit(limit)
-        result = await db.execute(query)
+        result = await self.db.execute(query)
         return result.scalars().all()
 
     async def create(
             self,
-            db:
-            AsyncSession,
             *,
             object_in: CreateSchemaType
     ) -> ModelType:
         object_in_data = object_in.model_dump(exclude_unset=True)
         db_object = self.model(**object_in_data)
-        db.add(db_object)
-        await db.commit()
-        await db.refresh(db_object)
+        self.db.add(db_object)
+        await self.db.commit()
+        await self.db.refresh(db_object)
         return db_object
 
     async def update(
             self,
-            db: AsyncSession,
             *,
             db_object: ModelType,
             object_in: UpdateSchemaType | Dict[str, Any]
@@ -63,20 +60,19 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             if field in update_data:
                 setattr(db_object, field, update_data[field])
 
-        db.add(db_object)
-        await db.commit()
-        await db.refresh(db_object)
+        self.db.add(db_object)
+        await self.db.commit()
+        await self.db.refresh(db_object)
         return db_object
 
     async def delete(
             self,
-            db: AsyncSession,
             *,
             id: Any
     ) -> bool:
-        object = await self.get_by_id(db, id)
+        object = await self.get_by_id(id)
         if object:
-            await db.delete(object)
-            await db.commit()
+            await self.db.delete(object)
+            await self.db.commit()
             return True
         return False
