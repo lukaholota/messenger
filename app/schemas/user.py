@@ -30,13 +30,13 @@ validatedPassword = Annotated[
 
 
 class UserBase(BaseModel):
-    email: EmailStr | None = None
     display_name: str | None = None
 
 
 class UserCredentialsBase(BaseModel):
     username: validatedUsername | None = None
     password: validatedPassword | None = None
+    email: EmailStr | None = None
 
     class Config:
         from_attributes = True
@@ -61,8 +61,7 @@ class UserUpdate(UserCredentialsBase, UserBase):
 
 class UserRead(UserBase):
     user_id: int
-    username: str
-    email: EmailStr
+    display_name: str
     class Config:
         from_attributes = True
 

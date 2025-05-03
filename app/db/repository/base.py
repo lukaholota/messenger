@@ -11,7 +11,7 @@ UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
 
 
 class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
-    def __init__(self, model: Type[ModelType], db: AsyncSession):
+    def __init__(self, db: AsyncSession, model: Type[ModelType]):
         self.model = model
         self._primary_key_name = inspect(model).primary_key[0].name
         self.db = db

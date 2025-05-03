@@ -20,7 +20,7 @@ class User(Base):
         nullable=False,
         index=True
     )
-    display_name: Mapped[str] = mapped_column(String(50), default=None)
+    display_name: Mapped[str] = mapped_column(String(50), nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     email: Mapped[str] = mapped_column(
         String(255),

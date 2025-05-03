@@ -43,6 +43,9 @@ class UserService:
             elif existing_user.email == user_in.email:
                 raise DuplicateEmailException(email=user_in.email)
 
+        if not user_in.display_name:
+            user_in.display_name = user_in.username
+
         hashed_password = hash_password(user_in.password)
         new_user_model = await (
             self.user_repository.create_with_hashed_password(

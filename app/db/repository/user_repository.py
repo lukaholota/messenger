@@ -57,3 +57,12 @@ class UserRepository(BaseRepository[UserModel, UserCreate, UserUpdate]):
         await self.db.commit()
         await self.db.refresh(db_object)
         return db_object
+
+    async def get_by_ids(self, ids: list[int]):
+        if not ids:
+            return []
+
+        query = select(UserModel).where(UserModel.user_id.in_(ids)).distinct()
+        result = await self.db.execute(query)
+        users = result.scalars().all()
+        return users
