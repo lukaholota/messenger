@@ -38,3 +38,4 @@ async def delete_user(
 
 @router.post('/user/logout', )
 async def logout_user():
+    pass
