@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field
 from typing import Annotated
-from .token import Token
+from .token import TokenRead
 
 
 USERNAME_REGEX = r"^[a-zA-Z0-9_]{3,20}$"
@@ -59,6 +59,12 @@ class UserUpdate(UserCredentialsBase, UserBase):
     pass
 
 
+class UserUpdateRead(BaseModel):
+    username: str
+    email: EmailStr
+    display_name: str
+
+
 class UserRead(UserBase):
     user_id: int
     display_name: str
@@ -68,4 +74,10 @@ class UserRead(UserBase):
 
 class UserWithToken(BaseModel):
     user: UserRead
-    token: Token
+    token: TokenRead
+
+
+class UserDelete(UserBase):
+    user_id: int
+    username: str
+    email: EmailStr

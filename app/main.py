@@ -2,6 +2,7 @@ import logging
 
 import sqlalchemy
 from fastapi import FastAPI, Request
+from jose import JWTError
 from starlette.responses import JSONResponse
 from starlette.status import HTTP_503_SERVICE_UNAVAILABLE, HTTP_409_CONFLICT, \
     HTTP_401_UNAUTHORIZED, HTTP_400_BAD_REQUEST, HTTP_500_INTERNAL_SERVER_ERROR
@@ -9,14 +10,19 @@ from starlette.status import HTTP_503_SERVICE_UNAVAILABLE, HTTP_409_CONFLICT, \
 from app.api.v1 import general
 from app.api.v1 import auth
 from app.api.v1 import chats
+from app.api.v1 import messages
+from app.api.v1 import users
 
 from app.db.base import Base
 from app.db.session import engine
 
 import app.models as models  # noqa: F401
-from app.exceptions import DuplicateEmailException, DuplicateUsernameException, \
-    InvalidCredentialsException, ChatValidationError, UsersNotFoundError, \
-    DatabaseError
+from app.exceptions import (
+    DuplicateEmailException, DuplicateUsernameException,
+    InvalidCredentialsException, ChatValidationError, UsersNotFoundError,
+    DatabaseError, MessageValidationError, InvalidTokenCredentialsException,
+    UserDeleteError
+)
 
 logger = logging.getLogger(__name__)
 app = FastAPI(
@@ -30,6 +36,9 @@ api_prefix = "/api/v1"
 app.include_router(general.router, prefix=api_prefix)
 app.include_router(auth.router, prefix=api_prefix)
 app.include_router(chats.router, prefix=api_prefix)
+app.include_router(messages.router, prefix=api_prefix)
+app.include_router(users.router, prefix=api_prefix)
+
 
 def create_tables():
     Base.metadata.create_all(bind=engine)
@@ -83,6 +92,21 @@ def invalid_credentials_exception_handler(
     )
 
 
+@app.exception_handler(InvalidTokenCredentialsException)
+def invalid_token_credentials_exception_handler(
+        _request: Request,
+        exc: InvalidTokenCredentialsException
+):
+    logger.error(
+    f"invalid token credentials exception: {exc}",
+        exc_info=exc
+    )
+    return JSONResponse(
+        status_code=HTTP_401_UNAUTHORIZED,
+        content={"detail": exc.detail}
+    )
+
+
 @app.exception_handler(ChatValidationError)
 def chat_validation_error_handler(
         _request: Request,
@@ -102,6 +126,29 @@ def users_not_found_error_handler(
 ):
     logger.error(f"Couldn't find users by IDS: {exc}, "
                  f"missing IDs: {exc.missing_ids}", exc_info=exc)
+    return JSONResponse(
+        status_code=HTTP_400_BAD_REQUEST,
+        content={"detail": exc.detail}
+    )
+
+@app.exception_handler(UserDeleteError)
+def user_delete_error_handler(
+        _request: Request,
+        exc: UserDeleteError
+):
+    logger.error(f'delete error: {exc}', exc_info=exc)
+    return JSONResponse(
+        status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": exc.detail}
+    )
+
+
+@app.exception_handler(MessageValidationError)
+def message_validation_error_handler(
+        _request: Request,
+        exc: MessageValidationError
+):
+    logger.error(f"Message validation error: {exc}", exc_info=exc)
     return JSONResponse(
         status_code=HTTP_400_BAD_REQUEST,
         content={"detail": exc.detail}
@@ -130,6 +177,18 @@ def integrity_error_handler(
         status_code=HTTP_409_CONFLICT,
         content={"detail": "Resource already exists or "
                            "violates integrity constraint"}
+    )
+
+
+@app.exception_handler(JWTError)
+def jwt_error_handler(
+        _request: Request,
+        exc: JWTError
+):
+    logger.error(f"JWT error: {exc}", exc_info=exc)
+    return JSONResponse(
+        status_code=HTTP_401_UNAUTHORIZED,
+        content={"detail": "Access token expired"}
     )
 
 

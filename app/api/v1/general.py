@@ -1,4 +1,6 @@
 from fastapi import APIRouter
+
+from app.api.deps import get_current_user
 from app.models import User
 from sqlalchemy import select
 from fastapi import Depends
@@ -15,8 +17,10 @@ async def root():
 
 @router.get("/users")
 async def users(
-        db: AsyncSession = Depends(get_db_session)
+        db: AsyncSession = Depends(get_db_session),
+        user = Depends(get_current_user),
 ):
+    return user.user_id
     query = select(User)
     result = await db.execute(query)
     db_users = result.scalars().all()

@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from sqlalchemy import select
 
 from app.db.repository.base import BaseRepository
@@ -54,8 +56,6 @@ class UserRepository(BaseRepository[UserModel, UserCreate, UserUpdate]):
             hashed_password=hashed_password
         )
         self.db.add(db_object)
-        await self.db.commit()
-        await self.db.refresh(db_object)
         return db_object
 
     async def get_by_ids(self, ids: list[int]):
@@ -66,3 +66,7 @@ class UserRepository(BaseRepository[UserModel, UserCreate, UserUpdate]):
         result = await self.db.execute(query)
         users = result.scalars().all()
         return users
+
+    async def soft_delete_user(self, user: UserModel):
+        user.deleted_at = datetime.now(timezone.utc)
+        user.display_name = 'Deleted user'

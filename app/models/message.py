@@ -23,5 +23,13 @@ class Message(Base):
         server_default=func.now()
     )
 
-    chat = relationship('Chat', back_populates='messages')
-    sender = relationship('User', back_populates='messages')
+    chat = relationship(
+    'Chat',
+    back_populates='messages',
+    lazy='raise_on_sql'
+    )
+    sender = relationship(
+    'User',
+    back_populates='messages',
+    lazy='raise_on_sql'
+    )

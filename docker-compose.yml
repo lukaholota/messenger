@@ -13,6 +13,7 @@ services:
       - "8007:8000"
     depends_on:
       - db
+      - redis
 
   db:
     image: mysql:5.7
@@ -28,5 +29,17 @@ services:
     volumes:
       - messenger_db_data:/var/lib/mysql
 
+  redis:
+    image: redis:latest
+    container_name: messenger-redis
+    restart: always
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+
 volumes:
   messenger_db_data:
+  redis_data:

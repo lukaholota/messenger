@@ -17,10 +17,12 @@ class ChatService:
             db: AsyncSession,
             chat_repository: ChatRepository,
             user_repository: UserRepository,
+            current_user: User
     ):
         self.db: AsyncSession = db
         self.chat_repository = chat_repository
         self.user_repository = user_repository
+        self.current_user = current_user
 
     async def create_chat(
             self,
@@ -123,3 +125,18 @@ class ChatService:
         await self.db.commit()
         await self.db.refresh(chat, attribute_names=['participants'])
         return chat
+
+    async def get_chat(
+            self,
+            chat_id: int
+    ) -> Chat:
+        existing_chat = await self.chat_repository.get_chat_with_relationships(
+            chat_id
+        )
+        if not existing_chat:
+            raise ChatValidationError('Chat not found')
+
+        if self.current_user not in existing_chat.participants:
+            raise ChatValidationError('User not in chat')
+
+        return existing_chat

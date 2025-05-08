@@ -1,6 +1,7 @@
+from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String, Integer
+from sqlalchemy import String, Integer, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -27,13 +28,18 @@ class User(Base):
         nullable=False,
         unique=True
     )
+    deleted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=None
+    )
 
     chats: Mapped[list["Chat"]] = relationship(
         "Chat",
         secondary="chat_participant",
-        back_populates="participants"
+        back_populates="participants",
+        lazy='raise_on_sql'
     )
     messages: Mapped[list["Message"]] = relationship(
         "Message",
-        back_populates="sender"
+        back_populates="sender",
+        lazy='raise_on_sql'
     )

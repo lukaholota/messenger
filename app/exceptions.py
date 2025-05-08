@@ -44,10 +44,52 @@ class UsersNotFoundError(ServiceException):
         super().__init__(self.detail)
 
 
+class UserNotFoundError(ServiceException):
+    def __init__(self, detail: str | None = None):
+        self.detail = detail
+        super().__init__(self.detail)
+
+
+class MessageValidationError(ServiceException):
+    def __init__(self, detail: str | None = None):
+        self.detail = detail
+        super().__init__(self.detail)
+
+
+class DeletedUserServiceError(ServiceException):
+    def __init__(self, detail: str | None = None):
+        self.detail = detail
+        super().__init__(self.detail)
+
+
+class UserDeleteError(ServiceException):
+    def __init__(self, detail: str | None = None):
+        self.detail = detail
+        super().__init__(self.detail)
+
+
+class DeletedUserError(HTTPException):
+    def __init__(self):
+        super().__init__(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='This user is deleted',
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
+
 class InvalidAccessTokenException(HTTPException):
     def __init__(self):
         super().__init__(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Invalid access token',
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
+
+class InvalidTokenCredentialsException(HTTPException):
+    def __init__(self):
+        super().__init__(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Invalid token credentials',
             headers={"WWW-Authenticate": "Bearer"}
         )

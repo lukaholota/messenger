@@ -1,35 +1,43 @@
-from datetime import timedelta
+import logging
 
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.exc import IntegrityError, OperationalError
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.config import settings
+from app.db.repository.chat_repository import ChatRepository
+from app.db.repository.refresh_token_repository import RefreshTokenRepository
 from app.db.repository.user_repository import UserRepository
 from app.models import User
-from app.schemas.user import UserCreate
+from app.schemas.user import UserCreate, UserUpdate
 from app.core.security import hash_password, verify_password
-from app.core.security import create_access_token
 from app.exceptions import (
     DuplicateUsernameException,
     DuplicateEmailException,
-    InvalidCredentialsException
+    InvalidCredentialsException,
+    UserNotFoundError,
+    DeletedUserServiceError,
+    UserDeleteError
 )
+
+logger = logging.getLogger(__name__)
 
 
 class UserService:
-    def __init__(self, user_repository: UserRepository):
+    def __init__(
+            self,
+            db: AsyncSession,
+            user_repository: UserRepository,
+            chat_repository: ChatRepository,
+            refresh_token_repository: RefreshTokenRepository,
+    ):
+        self.db: AsyncSession = db
         self.user_repository: UserRepository = user_repository
-
-    def _generate_access_token(self, user: User) -> str:
-        access_token_expires = timedelta(
-            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+        self.chat_repository: ChatRepository = chat_repository
+        self.refresh_token_repository: RefreshTokenRepository = (
+            refresh_token_repository
         )
-        access_token = create_access_token(
-            data={'sub': user.user_id},
-            expires_delta=access_token_expires
-        )
-        return access_token
 
-    async def create_new_user_with_token(
+    async def create_new_user(
             self,
             user_in: UserCreate,
     ):
@@ -53,9 +61,10 @@ class UserService:
             object_in=user_in
         )
         )
-        access_token = self._generate_access_token(new_user_model)
-        return new_user_model, access_token
+        await self.db.commit()
+        await self.db.refresh(new_user_model)
 
+        return new_user_model
 
     async def authenticate_user(
             self,
@@ -64,10 +73,71 @@ class UserService:
         existing_user = await self.user_repository.get_by_username(
             username=user_in.username
         )
+        if existing_user.deleted_at:
+            raise DeletedUserServiceError
         if not existing_user or not verify_password(
             user_in.password,
             existing_user.hashed_password
         ):
             raise InvalidCredentialsException
-        access_token = self._generate_access_token(existing_user)
-        return access_token
+        return existing_user
+
+    async def check_user_exists_by_id(self, user_id):
+        user = await self.user_repository.get_by_id(user_id)
+        if not user:
+            raise UserNotFoundError('User is not found')
+        return user
+
+    async def update_user(
+            self,
+            user,
+            user_in: UserUpdate,
+    ) -> User:
+        update_data = user_in.model_dump(exclude_unset=True)
+        if not update_data:
+            return user
+
+        for key, value in update_data.items():
+            if hasattr(user, key):
+                setattr(user, key, value)
+            else:
+                logger.warning(f"trying to set value '{value}' "
+                               f"to nonexistant attribute '{key}'")
+
+        try:
+            await self.db.commit()
+            await self.db.refresh(user)
+            return user
+        except IntegrityError:
+            await self.db.rollback()
+
+            raise InvalidCredentialsException(
+                'username or email already taken'
+            )
+
+    async def soft_delete_user(self, user: User) -> User:
+        try:
+            delete_stmt = await self.chat_repository.delete_user_from_group_chats(
+                user.user_id
+            )
+            await self.db.execute(delete_stmt)
+
+            await self.refresh_token_repository.revoke_token_by_user_id(
+                user.user_id
+            )
+
+            await self.user_repository.soft_delete_user(user)
+
+            await self.db.commit()
+            await self.db.refresh(user)
+
+            return user
+        except IntegrityError as e:
+            await self.db.rollback()
+            raise UserDeleteError('integrity error') from e
+        except OperationalError as e:
+            await self.db.rollback()
+            raise UserDeleteError('database operational error') from e
+        except Exception as e:
+            await self.db.rollback()
+            raise UserDeleteError('Unexpected error') from e
