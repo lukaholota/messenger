@@ -37,8 +37,8 @@ services:
       - "6380:6379"
     volumes:
       - redis_data:/data
-    environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
+
+    command: redis-server --requirepass ${REDIS_PASSWORD}
 
 volumes:
   messenger_db_data:
