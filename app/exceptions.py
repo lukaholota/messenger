@@ -93,3 +93,21 @@ class InvalidTokenCredentialsException(HTTPException):
             detail='Invalid token credentials',
             headers={"WWW-Authenticate": "Bearer"}
         )
+
+
+class RedisConnectionError(HTTPException):
+    def __init__(self):
+        super().__init__(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail='redis connection error',
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+
+
+class TokenInvalidatedError(HTTPException):
+    def __init__(self):
+        super().__init__(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail='Token invalidated error',
+            headers={"WWW-Authenticate": "Bearer"}
+        )

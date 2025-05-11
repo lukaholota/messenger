@@ -38,12 +38,31 @@ class RefreshTokenRepository:
         token.is_revoked = True
         self.db.add(token)
 
-    async def revoke_token_by_user_id(self, user_id: int):
+    async def revoke_tokens_by_user_id(self, user_id: int):
         query = select(RefreshToken).where(
             RefreshToken.user_id == user_id
         ).where(RefreshToken.is_revoked == False)
         result = await self.db.execute(query)
+        tokens = result.scalars().all()
+
+        if tokens:
+            for token in tokens:
+                token.is_revoked = True
+
+            self.db.add_all(tokens)
+
+    async def revoke_token_by_identifier_and_user_id(
+            self,
+            token_identifier: str,
+            user_id: int,
+    ):
+        query = (select(RefreshToken).where(
+            RefreshToken.user_id == user_id
+        ).where(RefreshToken.token_identifier == token_identifier)
+                 .where(RefreshToken.is_revoked == False))
+        result = await self.db.execute(query)
         token = result.scalar_one_or_none()
+
         if token:
             token.is_revoked = True
             self.db.add(token)

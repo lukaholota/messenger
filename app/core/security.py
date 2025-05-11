@@ -53,12 +53,14 @@ def decode_jwt_token(token: str) -> TokenPayload | None:
         user_id: str | None = payload.get('sub')
         token_type: str | None = payload.get('type')
         jti: str | None = payload.get('jti')
+        expires_at: str | None = payload.get('exp')
         if not user_id or not token_type:
             raise InvalidTokenCredentialsException
         token_data = TokenPayload(
             user_id=user_id,
             token_type=token_type,
-            jti=jti
+            jti=jti,
+            expires_at=expires_at
         )
         return token_data
     except ExpiredSignatureError:

@@ -13,6 +13,7 @@ class TokenPayload(BaseModel):
     user_id: str
     token_type: str
     jti: str
+    expires_at: int
 
 
 class CreatedTokenInfo(BaseModel):

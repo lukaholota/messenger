@@ -40,7 +40,7 @@ class UserCredentialsBase(BaseModel):
 
     class Config:
         from_attributes = True
-        schema_extra = {
+        json_schema_extra = {
             "example": {
                 "username": "valid_user123",
                 "password": "ValidPass!123",

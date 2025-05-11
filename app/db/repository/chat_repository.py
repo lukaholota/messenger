@@ -1,4 +1,4 @@
-from sqlalchemy import select, asc, delete
+from sqlalchemy import select, asc, delete, and_
 from sqlalchemy.orm import selectinload
 
 from .base import BaseRepository
@@ -58,11 +58,15 @@ class ChatRepository(BaseRepository[ChatModel, ChatCreate, ChatUpdate]):
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
 
-
     async def delete_user_from_group_chats(self, user_id):
-        delete_stmt = delete(ChatParticipant.chat_id).join(
-            ChatModel, ChatParticipant.chat_id == ChatModel.chat_id
-        ).where(ChatParticipant.user_id == user_id).where(
+        group_chat_ids_subquery = select(ChatModel.chat_id).where(
             ChatModel.is_group == True
+        ).scalar_subquery()
+
+        delete_stmt = delete(ChatParticipant).where(
+            and_(
+                ChatParticipant.user_id == user_id,
+                ChatParticipant.chat_id.in_(group_chat_ids_subquery)
+            )
         )
         return delete_stmt

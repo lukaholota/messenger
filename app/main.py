@@ -1,4 +1,5 @@
 import logging
+from contextlib import asynccontextmanager
 
 import sqlalchemy
 from fastapi import FastAPI, Request
@@ -15,6 +16,7 @@ from app.api.v1 import users
 
 from app.db.base import Base
 from app.db.session import engine
+from app.redis.connection import add_redis_client_to_app_state
 
 import app.models as models  # noqa: F401
 from app.exceptions import (
@@ -25,10 +27,28 @@ from app.exceptions import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("Connecting to Redis...")
+    await add_redis_client_to_app_state(app)
+
+    yield
+
+    logger.info("Disconnecting from Redis...")
+    if (
+            hasattr(app.state, 'redis_client') and
+            app.state.redis_client is not None
+    ):
+        app.state.redis_client.close()
+        logger.info("Disconnected from Redis")
+
 app = FastAPI(
     title="Messenger API",
     description="API for the Messenger application",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 api_prefix = "/api/v1"

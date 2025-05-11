@@ -1,16 +1,17 @@
-from fastapi import APIRouter, Depends, status, Body, HTTPException
+from fastapi import APIRouter, Depends, status, Body
 from fastapi.security import OAuth2PasswordRequestForm
-from jose import ExpiredSignatureError
 
-from app.core.security import decode_jwt_token
-from app.exceptions import InvalidTokenCredentialsException, \
-    DeletedUserServiceError, DeletedUserError
-from app.schemas.token import TokenRead, TokenPairInfo
+from app.exceptions import DeletedUserServiceError, DeletedUserError
+from app.schemas.token import TokenRead, TokenPairInfo, TokenPayload
 from app.schemas.user import UserCreate, UserRead
 from app.schemas.user import UserWithToken
 from app.services.auth_service import AuthService
 from app.services.user_service import UserService
-from app.api.deps import get_user_service, get_auth_service
+from app.api.deps import (
+    get_user_service,
+    get_auth_service,
+    get_access_token_payload, get_user_service_for_token_operations
+)
 
 router = APIRouter()
 
@@ -54,7 +55,9 @@ async def register_user(
 @router.post('/token', response_model=TokenRead)
 async def login_for_access_token(
         form_data: OAuth2PasswordRequestForm = Depends(),
-        user_service: UserService = Depends(get_user_service),
+        user_service: UserService = Depends(
+            get_user_service_for_token_operations
+        ),
         auth_service: AuthService = Depends(get_auth_service)
 ):
     try:
@@ -83,22 +86,16 @@ async def login_for_access_token(
 async def make_token_rotation(
         refresh_token: str = Body(..., embed=True),
         auth_service: AuthService = Depends(get_auth_service),
-        user_service: UserService = Depends(get_user_service)
-):
-    try:
-        token_payload = decode_jwt_token(refresh_token)
-    except ExpiredSignatureError:
-        raise HTTPException(
-            status_code=403,
-            detail="Refresh token has expired",
-            headers={"WWW-Authenticate": "Bearer"},
+        user_service: UserService = Depends(
+            get_user_service_for_token_operations
         )
+):
+    refresh_token_payload = await auth_service.get_refresh_token_payload(
+        refresh_token
+    )
 
-    if token_payload.token_type != 'refresh':
-        raise InvalidTokenCredentialsException
-
-    refresh_token_in_db = await auth_service.validate_refresh_token(
-        token_identifier=token_payload.jti
+    refresh_token_in_db = await auth_service.get_refresh_token_from_db(
+        token_identifier=refresh_token_payload.jti
     )
 
     await user_service.check_user_exists_by_id(refresh_token_in_db.user_id)
@@ -121,3 +118,21 @@ async def make_token_rotation(
         'refresh_token': token_pair_info.refresh_token_info.token,
         'token_type': 'bearer'
     }
+
+
+@router.post('/auth/logout')
+async def logout_user(
+        refresh_token: str = Body(..., embed=True),
+        access_token_payload: TokenPayload = Depends(get_access_token_payload),
+        auth_service: AuthService = Depends(get_auth_service)
+):
+    refresh_token_payload = await auth_service.get_refresh_token_payload(
+        refresh_token
+    )
+
+    await auth_service.logout(
+        refresh_token_payload=refresh_token_payload,
+        access_token_payload=access_token_payload
+    )
+
+    return {'success': True}

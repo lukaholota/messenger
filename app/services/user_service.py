@@ -27,15 +27,17 @@ class UserService:
             self,
             db: AsyncSession,
             user_repository: UserRepository,
-            chat_repository: ChatRepository,
-            refresh_token_repository: RefreshTokenRepository,
+            chat_repository: ChatRepository | None,
+            refresh_token_repository: RefreshTokenRepository | None,
+            current_user: User | None,
     ):
         self.db: AsyncSession = db
         self.user_repository: UserRepository = user_repository
-        self.chat_repository: ChatRepository = chat_repository
-        self.refresh_token_repository: RefreshTokenRepository = (
+        self.chat_repository: ChatRepository | None = chat_repository
+        self.refresh_token_repository: RefreshTokenRepository | None = (
             refresh_token_repository
         )
+        self.current_user: User | None = current_user
 
     async def create_new_user(
             self,
@@ -90,24 +92,23 @@ class UserService:
 
     async def update_user(
             self,
-            user,
             user_in: UserUpdate,
     ) -> User:
         update_data = user_in.model_dump(exclude_unset=True)
         if not update_data:
-            return user
+            return self.current_user
 
         for key, value in update_data.items():
-            if hasattr(user, key):
-                setattr(user, key, value)
+            if hasattr(self.current_user, key):
+                setattr(self.current_user, key, value)
             else:
                 logger.warning(f"trying to set value '{value}' "
                                f"to nonexistant attribute '{key}'")
 
         try:
             await self.db.commit()
-            await self.db.refresh(user)
-            return user
+            await self.db.refresh(self.current_user)
+            return self.current_user
         except IntegrityError:
             await self.db.rollback()
 
@@ -115,23 +116,23 @@ class UserService:
                 'username or email already taken'
             )
 
-    async def soft_delete_user(self, user: User) -> User:
+    async def soft_delete_user(self) -> User:
         try:
-            delete_stmt = await self.chat_repository.delete_user_from_group_chats(
-                user.user_id
+            delete_stmt = await (
+                self.chat_repository.delete_user_from_group_chats(self.current_user.user_id)
             )
             await self.db.execute(delete_stmt)
 
-            await self.refresh_token_repository.revoke_token_by_user_id(
-                user.user_id
+            await self.refresh_token_repository.revoke_tokens_by_user_id(
+                self.current_user.user_id
             )
 
-            await self.user_repository.soft_delete_user(user)
+            await self.user_repository.soft_delete_user(self.current_user)
 
             await self.db.commit()
-            await self.db.refresh(user)
+            await self.db.refresh(self.current_user)
 
-            return user
+            return self.current_user
         except IntegrityError as e:
             await self.db.rollback()
             raise UserDeleteError('integrity error') from e

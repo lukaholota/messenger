@@ -1,14 +1,21 @@
 from datetime import datetime, timedelta
+from logging import getLogger
 
+from fastapi import HTTPException
+from jose import ExpiredSignatureError
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.security import create_jwt_token
+from app.core.security import create_jwt_token, decode_jwt_token
 from app.db.repository.refresh_token_repository import RefreshTokenRepository
 from app.exceptions import InvalidTokenCredentialsException
 from app.models.refresh_token import RefreshToken
-from app.schemas.token import TokenPairInfo
+from app.schemas.token import TokenPairInfo, TokenPayload
+from app.services.redis_token_blacklist_service import \
+    RedisTokenBlacklistService
+
+logger = getLogger(__name__)
 
 
 class AuthService:
@@ -17,11 +24,29 @@ class AuthService:
             *,
             db: AsyncSession,
             refresh_token_repository: RefreshTokenRepository,
+            redis_token_blacklist_service: RedisTokenBlacklistService
     ):
         self.db = db
         self.refresh_token_repository = refresh_token_repository
+        self.redis_token_blacklist_service = redis_token_blacklist_service
 
-    async def validate_refresh_token(self, token_identifier: str)\
+    async def get_refresh_token_payload(self, refresh_token: str) -> (
+            TokenPayload):
+        try:
+            token_payload = decode_jwt_token(refresh_token)
+        except ExpiredSignatureError:
+            raise HTTPException(
+                status_code=403,
+                detail="Refresh token has expired",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        if token_payload.token_type != 'refresh':
+            raise InvalidTokenCredentialsException
+
+        return token_payload
+
+    async def get_refresh_token_from_db(self, token_identifier: str) \
             -> RefreshToken:
         token = await self.refresh_token_repository.get_by_token_identifier(
             token_identifier
@@ -77,3 +102,29 @@ class AuthService:
             access_token_info=access_token_info,
             refresh_token_info=refresh_token_info,
         )
+
+    async def logout(
+            self,
+            *,
+            refresh_token_payload: TokenPayload,
+            access_token_payload: TokenPayload,
+    ):
+        try:
+            await (self.refresh_token_repository.
+                    revoke_token_by_identifier_and_user_id(
+                        refresh_token_payload.jti,
+                        int(access_token_payload.user_id)
+            ))
+            await self.db.commit()
+
+            await self.redis_token_blacklist_service.add_to_blacklist(
+                token_identifier=access_token_payload.jti,
+                original_expiration_timestamp=access_token_payload.expires_at
+            )
+        except SQLAlchemyError as e:
+            await self.db.rollback()
+            logger.error(f"SQLAlchemyError: {e}", exc_info=e)
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}", exc_info=e)
+            raise
