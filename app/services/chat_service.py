@@ -8,7 +8,7 @@ from app.exceptions import (
     DatabaseError,
 )
 from app.models import User, Chat
-from app.schemas.chat import ChatCreate
+from app.schemas.chat import ChatCreate, ChatUpdate
 
 
 class ChatService:
@@ -140,3 +140,62 @@ class ChatService:
             raise ChatValidationError('User not in chat')
 
         return existing_chat
+
+    async def update_chat(
+            self,
+            chat_in: ChatUpdate,
+    ) -> Chat:
+        existing_chat = await self._get_and_validate_chat_with_participants(
+            chat_in.chat_id
+        )
+        try:
+            if chat_in.name:
+                existing_chat.name = chat_in.name
+                await self.db.commit()
+                await self.db.refresh(existing_chat, attribute_names=['name'])
+                return existing_chat
+        except SQLAlchemyError as db_exc:
+            await self.db.rollback()
+            raise DatabaseError('Failed to update chat') from db_exc
+        except Exception:
+            await self.db.rollback()
+            raise
+
+    async def _get_and_validate_chat_with_participants(self, chat_id: int):
+        existing_chat = await self.chat_repository.get_chat_with_participants(
+            chat_id
+        )
+        if not existing_chat:
+            raise ChatValidationError('Chat not found')
+
+        if self.current_user not in existing_chat.participants:
+            raise ChatValidationError('User not in chat')
+
+        return existing_chat
+
+    async def add_participants(
+            self,
+            chat_id : int,
+            participants_ids: list[int]
+    ) -> Chat:
+        existing_chat = await self._get_and_validate_chat_with_participants(
+            chat_id
+        )
+        try:
+            users_to_add_in_db = await self.user_repository.get_by_ids(
+                participants_ids
+            )
+            for user in users_to_add_in_db:
+                if user not in existing_chat.participants:
+                    existing_chat.participants.append(user)
+
+            await self.db.commit()
+            await self.db.refresh(existing_chat, attribute_names=['participants'])
+
+            return existing_chat
+        except SQLAlchemyError as db_exc:
+            await self.db.rollback()
+            raise DatabaseError('Failed to add participants') from db_exc
+        except Exception:
+            await self.db.rollback()
+            raise

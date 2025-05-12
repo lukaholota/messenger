@@ -8,7 +8,6 @@ from app.schemas.user import UserWithToken
 from app.services.auth_service import AuthService
 from app.services.user_service import UserService
 from app.api.deps import (
-    get_user_service,
     get_auth_service,
     get_access_token_payload, get_user_service_for_token_operations
 )
@@ -23,7 +22,9 @@ router = APIRouter()
 )
 async def register_user(
         user_in: UserCreate,
-        user_service: UserService = Depends(get_user_service),
+        user_service: UserService = Depends(
+            get_user_service_for_token_operations
+        ),
         auth_service: AuthService = Depends(get_auth_service)
 ) -> UserWithToken:
     new_user_model = await (

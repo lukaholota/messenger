@@ -6,14 +6,16 @@ from app.schemas.user import UserRead
 
 class ChatBase(BaseModel):
     name: str | None = None
-    is_group: bool
+    is_group: bool | None = None
 
 
 class ChatCreate(ChatBase):
     participants_ids: list[int]
+    is_group: bool
 
 
 class ChatUpdate(ChatBase):
+    chat_id: int
     name: str
 
 
@@ -35,3 +37,13 @@ class ChatWithDetails(ChatBase):
 
     class Config:
         from_attributes = True
+
+
+class ChatUpdateRead(ChatBase):
+    chat_id: int
+    name: str
+
+
+class ChatAddParticipants(BaseModel):
+    chat_id: int
+    participants_ids: list[int]

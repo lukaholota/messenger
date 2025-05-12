@@ -1,11 +1,10 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from app.api.deps import get_chat_service, get_current_user
-from app.db.session import get_db_session
-from app.models import User
-from app.schemas.chat import ChatRead, ChatCreate, ChatWithDetails
+from app.api.deps import get_chat_service
+
+from app.schemas.chat import ChatRead, ChatCreate, ChatWithDetails, ChatUpdate, \
+    ChatUpdateRead, ChatAddParticipants
 from app.services.chat_service import ChatService
 
 router = APIRouter()
@@ -31,4 +30,26 @@ async def read_chat(
 ):
     chat = await chat_service.get_chat(chat_id)
 
+    return chat
+
+
+@router.post('/chats/update', response_model=ChatUpdateRead)
+async def update_chat(
+        chat_in: ChatUpdate,
+        chat_service: ChatService = Depends(get_chat_service)
+):
+    chat = await chat_service.update_chat(chat_in)
+
+    return chat
+
+
+@router.post('/chats/add-participants', response_model=ChatRead)
+async def add_chat_participants(
+        in_data: ChatAddParticipants,
+        chat_service: ChatService = Depends(get_chat_service)
+):
+    chat = await chat_service.add_participants(
+        in_data.chat_id,
+        in_data.participants_ids
+    )
     return chat

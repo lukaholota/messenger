@@ -58,6 +58,17 @@ class ChatRepository(BaseRepository[ChatModel, ChatCreate, ChatUpdate]):
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
 
+
+    async def get_chat_with_participants(self, chat_id):
+        query = select(ChatModel).where(
+            ChatModel.chat_id == chat_id
+        ).options(
+            selectinload(ChatModel.participants)
+        )
+        result = await self.db.execute(query)
+        return result.scalar_one_or_none()
+
+
     async def delete_user_from_group_chats(self, user_id):
         group_chat_ids_subquery = select(ChatModel.chat_id).where(
             ChatModel.is_group == True
