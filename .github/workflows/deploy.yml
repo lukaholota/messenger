@@ -58,6 +58,15 @@ jobs:
           ACCESS_TOKEN_EXPIRE_MINUTES=30
           REFRESH_TOKEN_EXPIRE_DAYS=30
           
+          RABBITMQ_HOST=31.131.17.213
+          RABBITMQ_PORT=5673
+          RABBITMQ_WAITING_QUEUE=waiting_queue
+          RABBITMQ_PROCESSING_QUEUE=processing_queue
+          RABBITMQ_DLX_NAME=dlx_exchange
+          
+          RABBITMQ_DEFAULT_USER=luka
+          RABBITMQ_DEFAULT_PASS=ptsy7nzoqkL7gZW3ACZVxl2JClc6nCI1T1XezjDATU2noIaeQ3
+          
           EOF
           echo '.env updated successfully'
           "
