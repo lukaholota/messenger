@@ -11,11 +11,6 @@ services:
       - ./app:/app
     ports:
       - "8007:8000"
-    environment:
-      - RABBITMQ_HOST=${RABBITMQ_HOST}
-      - RABBITMQ_WAITING_QUEUE=${RABBITMQ_WAITING_QUEUE}
-      - RABBITMQ_PROCESSING_QUEUE=${RABBITMQ_PROCESSING_QUEUE}
-      - RABBITMQ_DLX_NAME=${RABBITMQ_DLX_NAME}
     depends_on:
       - db
       - redis

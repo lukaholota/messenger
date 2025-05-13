@@ -3,7 +3,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.repository.chat_repository import ChatRepository
 from app.db.repository.message_repository import MessageRepository
-from app.db.repository.user_repository import UserRepository
 from app.exceptions import DatabaseError, MessageValidationError
 from app.models import Message, User
 from app.schemas.message import MessageCreate
@@ -16,13 +15,11 @@ class MessageService:
             *,
             message_repository: MessageRepository,
             chat_repository: ChatRepository,
-            user_repository: UserRepository,
             current_user: User,
     ):
         self.db = db
         self.message_repository = message_repository
         self.chat_repository = chat_repository
-        self.user_repository = user_repository
         self.current_user = current_user
 
     async def create_message(self, message_in: MessageCreate) -> Message:

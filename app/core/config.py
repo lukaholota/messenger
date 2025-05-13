@@ -31,6 +31,14 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
+    RABBITMQ_HOST: str
+    RABBITMQ_PORT: int
+    RABBITMQ_DEFAULT_USER: str
+    RABBITMQ_DEFAULT_PASS: str
+    WAITING_QUEUE_NAME: str
+    PROCESSING_QUEUE_NAME: str
+    DLX_NAME: str
+
     model_config = SettingsConfigDict(
         env_file=ENV_FILE_PATH,
         extra='ignore'

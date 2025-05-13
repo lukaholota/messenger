@@ -146,14 +146,12 @@ async def get_chat_service(
 async def get_message_service(
         db: AsyncSession = Depends(get_db_session),
         message_repository = Depends(get_message_repository),
-        user_repository: UserRepository = Depends(get_user_repository),
         chat_repository: ChatRepository = Depends(get_chat_repository),
         current_user: User = Depends(get_current_user)
 ) -> MessageService:
     message_service = MessageService(
         db,
         message_repository=message_repository,
-        user_repository=user_repository,
         chat_repository=chat_repository,
         current_user=current_user
     )

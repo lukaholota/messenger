@@ -111,3 +111,19 @@ class TokenInvalidatedError(HTTPException):
             detail='Token invalidated error',
             headers={"WWW-Authenticate": "Bearer"}
         )
+
+
+class MessagingError(Exception):
+    pass
+
+
+class MessagingConnectionError(MessagingError):
+    pass
+
+
+class MessagePublishError(MessagingError):
+    pass
+
+
+class InvalidMessageDataError(ValueError):
+    pass
