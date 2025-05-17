@@ -127,3 +127,13 @@ class MessagePublishError(MessagingError):
 
 class InvalidMessageDataError(ValueError):
     pass
+
+
+class ScheduledInPastError(ServiceException):
+    pass
+
+
+class ScheduledMessageValidationError(ServiceException):
+    def __init__(self, detail: str | None = None):
+        self.detail = detail
+        super().__init__(self.detail)

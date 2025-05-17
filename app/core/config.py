@@ -35,9 +35,9 @@ class Settings(BaseSettings):
     RABBITMQ_PORT: int
     RABBITMQ_DEFAULT_USER: str
     RABBITMQ_DEFAULT_PASS: str
-    WAITING_QUEUE_NAME: str
-    PROCESSING_QUEUE_NAME: str
-    DLX_NAME: str
+    RABBITMQ_WAITING_QUEUE: str
+    RABBITMQ_PROCESSING_QUEUE: str
+    RABBITMQ_DLX_NAME: str
 
     model_config = SettingsConfigDict(
         env_file=ENV_FILE_PATH,

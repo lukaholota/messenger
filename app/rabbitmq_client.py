@@ -13,14 +13,14 @@ RABBITMQ_HOST = settings.RABBITMQ_HOST
 RABBITMQ_PORT = settings.RABBITMQ_PORT
 RABBITMQ_DEFAULT_USER = settings.RABBITMQ_DEFAULT_USER
 RABBITMQ_DEFAULT_PASS = settings.RABBITMQ_DEFAULT_PASS
-WAITING_QUEUE_NAME = settings.WAITING_QUEUE_NAME
-PROCESSING_QUEUE_NAME = settings.PROCESSING_QUEUE_NAME
-DLX_NAME = settings.DLX_NAME
+WAITING_QUEUE_NAME = settings.RABBITMQ_WAITING_QUEUE
+PROCESSING_QUEUE_NAME = settings.RABBITMQ_PROCESSING_QUEUE
+DLX_NAME = settings.RABBITMQ_DLX_NAME
 
 logger = getLogger(__name__)
 
 
-async def publish_delayed_message(message_data: dict, delay_seconds: int):
+async def publish_scheduled_message(message_data: dict, delay_seconds: int):
     loop = get_running_loop()
     connection = None
     try:

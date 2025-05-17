@@ -6,13 +6,15 @@ from fastapi import FastAPI, Request
 from jose import JWTError
 from starlette.responses import JSONResponse
 from starlette.status import HTTP_503_SERVICE_UNAVAILABLE, HTTP_409_CONFLICT, \
-    HTTP_401_UNAUTHORIZED, HTTP_400_BAD_REQUEST, HTTP_500_INTERNAL_SERVER_ERROR
+    HTTP_401_UNAUTHORIZED, HTTP_400_BAD_REQUEST, \
+    HTTP_500_INTERNAL_SERVER_ERROR
 
 from app.api.v1 import general
 from app.api.v1 import auth
 from app.api.v1 import chats
 from app.api.v1 import messages
 from app.api.v1 import users
+from app.api.v1 import scheduled_messages
 
 from app.db.base import Base
 from app.db.session import engine
@@ -23,8 +25,16 @@ from app.exceptions import (
     DuplicateEmailException, DuplicateUsernameException,
     InvalidCredentialsException, ChatValidationError, UsersNotFoundError,
     DatabaseError, MessageValidationError, InvalidTokenCredentialsException,
-    UserDeleteError
+    UserDeleteError, MessagingConnectionError, InvalidMessageDataError,
+    MessagePublishError, ScheduledInPastError, ScheduledMessageValidationError
 )
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +68,7 @@ app.include_router(auth.router, prefix=api_prefix)
 app.include_router(chats.router, prefix=api_prefix)
 app.include_router(messages.router, prefix=api_prefix)
 app.include_router(users.router, prefix=api_prefix)
+app.include_router(scheduled_messages.router, prefix=api_prefix)
 
 
 def create_tables():
@@ -151,6 +162,7 @@ def users_not_found_error_handler(
         content={"detail": exc.detail}
     )
 
+
 @app.exception_handler(UserDeleteError)
 def user_delete_error_handler(
         _request: Request,
@@ -159,6 +171,67 @@ def user_delete_error_handler(
     logger.error(f'delete error: {exc}', exc_info=exc)
     return JSONResponse(
         status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": exc.detail}
+    )
+
+
+@app.exception_handler(MessagingConnectionError)
+async def messaging_connection_error_handler(
+        _request: Request,
+        exc: MessagingConnectionError
+):
+    logger.error(f"Messaging connection error: {exc}", exc_info=exc)
+    return JSONResponse(
+        status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": "Connection to messaging service has failed"}
+    )
+
+
+@app.exception_handler(InvalidMessageDataError)
+async def invalid_message_data_error_handler(
+        _request: Request,
+        exc: InvalidMessageDataError
+):
+    logger.error(f"Invalid message data: {exc}", exc_info=exc)
+    return JSONResponse(
+        status_code=HTTP_400_BAD_REQUEST,
+        content={"detail": "Invalid message data"}
+    )
+
+
+@app.exception_handler(MessagePublishError)
+async def message_publish_error_handler(
+        _request: Request,
+        exc: MessagePublishError
+):
+    logger.error(f"Message publish error: {exc}", exc_info=exc)
+    return JSONResponse(
+        status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": "Messaging server error"}
+    )
+
+
+@app.exception_handler(ScheduledInPastError)
+async def scheduled_in_past_error_handler(
+        _request: Request,
+        exc: ScheduledInPastError
+):
+    logger.error(f"Scheduled in past: {exc}", exc_info=exc)
+    return JSONResponse(
+        status_code=HTTP_400_BAD_REQUEST,
+        content={"detail": "Scheduled time must be in future"}
+    )
+
+
+@app.exception_handler(ScheduledMessageValidationError)
+def scheduled_message_validation_error_handler(
+        _request: Request,
+        exc: ScheduledMessageValidationError
+):
+    logger.error(f"scheduled message validation exception: {exc}",
+                 exc_info=exc)
+    return JSONResponse(
+        status_code=HTTP_400_BAD_REQUEST,
         content={"detail": exc.detail}
     )
 
