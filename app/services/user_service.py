@@ -27,9 +27,9 @@ class UserService:
             self,
             db: AsyncSession,
             user_repository: UserRepository,
-            chat_repository: ChatRepository | None,
-            refresh_token_repository: RefreshTokenRepository | None,
-            current_user: User | None,
+            chat_repository: ChatRepository | None = None,
+            refresh_token_repository: RefreshTokenRepository | None = None,
+            current_user: User | None = None,
     ):
         self.db: AsyncSession = db
         self.user_repository: UserRepository = user_repository

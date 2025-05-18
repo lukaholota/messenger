@@ -62,7 +62,10 @@ class UserRepository(BaseRepository[UserModel, UserCreate, UserUpdate]):
         if not ids:
             return []
 
-        query = select(UserModel).where(UserModel.user_id.in_(ids)).distinct()
+        query = select(UserModel).where(
+            UserModel.user_id.in_(ids)).where(
+            UserModel.deleted_at.is_(None)
+        ).distinct()
         result = await self.db.execute(query)
         users = result.scalars().all()
         return users

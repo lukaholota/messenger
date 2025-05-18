@@ -8,10 +8,9 @@ from app.db.repository.scheduled_message_repository import \
 from app.exceptions import ScheduledInPastError, MessagingConnectionError, \
     InvalidMessageDataError, MessagePublishError, ChatValidationError, \
     ScheduledMessageValidationError
-from app.models import User
 from app.models.scheduled_message import ScheduledMessage, \
     ScheduledMessageStatus
-from app.rabbitmq_client import publish_scheduled_message
+from app.infrastructure.message_queue.rabbitmq_client import publish_scheduled_message
 
 
 class ScheduledMessageService:
@@ -21,12 +20,12 @@ class ScheduledMessageService:
             *,
             scheduled_message_repository: ScheduledMessageRepository,
             chat_repository: ChatRepository,
-            current_user: User,
+            current_user_id: int,
     ):
         self.db = db
         self.scheduled_message_repository = scheduled_message_repository
         self.chat_repository = chat_repository
-        self.current_user = current_user
+        self.current_user_id = current_user_id
 
     async def schedule_new_message(
             self,
@@ -36,18 +35,18 @@ class ScheduledMessageService:
             scheduled_send_at: datetime,
     ) -> ScheduledMessage | None:
         await self.check_user_in_chat(
-            chat_id, self.current_user.user_id
+            chat_id, self.current_user_id
         )
 
         scheduled_message_in_db = await self.save_scheduled_message_to_db(
-            user_id=self.current_user.user_id,
+            user_id=self.current_user_id,
             chat_id=chat_id,
             content=content,
             scheduled_send_at=scheduled_send_at,
         )
         await self.send_to_messaging(
             chat_id=chat_id,
-            user_id=self.current_user.user_id,
+            user_id=self.current_user_id,
             scheduled_message_db_id=(
                 scheduled_message_in_db.scheduled_message_id
             ),
@@ -127,11 +126,11 @@ class ScheduledMessageService:
             chat_id: int,
     ):
         await self.check_user_in_chat(
-            chat_id, self.current_user.user_id
+            chat_id, self.current_user_id
         )
 
         return await self.scheduled_message_repository.get_scheduled_messages(
-            user_id=self.current_user.user_id,
+            user_id=self.current_user_id,
             chat_id=chat_id
         )
 
@@ -143,13 +142,13 @@ class ScheduledMessageService:
     ):
         await self.check_user_in_chat(
             chat_id=chat_id,
-            user_id=self.current_user.user_id,
+            user_id=self.current_user_id,
         )
 
         scheduled_message: ScheduledMessage = await (
             self.get_and_validate_existing_scheduled_message(
                 chat_id=chat_id,
-                user_id=self.current_user.user_id,
+                user_id=self.current_user_id,
                 scheduled_message_id=scheduled_message_id
         ))
 

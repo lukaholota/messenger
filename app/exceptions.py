@@ -99,7 +99,7 @@ class RedisConnectionError(HTTPException):
     def __init__(self):
         super().__init__(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail='redis connection error',
+            detail='cache connection error',
             headers={"WWW-Authenticate": "Bearer"}
         )
 

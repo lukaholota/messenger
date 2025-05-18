@@ -18,7 +18,7 @@ from app.api.v1 import scheduled_messages
 
 from app.db.base import Base
 from app.db.session import engine
-from app.redis.connection import add_redis_client_to_app_state
+from app.infrastructure.cache.connection import add_redis_client_to_app_state
 
 import app.models as models  # noqa: F401
 from app.exceptions import (
@@ -51,7 +51,7 @@ async def lifespan(app: FastAPI):
             hasattr(app.state, 'redis_client') and
             app.state.redis_client is not None
     ):
-        app.state.redis_client.close()
+        await app.state.redis_client.close()
         logger.info("Disconnected from Redis")
 
 app = FastAPI(

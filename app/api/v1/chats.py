@@ -26,10 +26,10 @@ async def create_chat(
 @router.get('/chats/{chat_id}', response_model=ChatWithDetails)
 async def read_chat(
         chat_id: int,
-        chat_service: ChatService = Depends(get_chat_service)
+        chat_service: ChatService = Depends(get_chat_service),
+
 ):
     chat = await chat_service.get_chat(chat_id)
-
     return chat
 
 

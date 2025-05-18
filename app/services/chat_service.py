@@ -7,6 +7,7 @@ from app.exceptions import (
     UsersNotFoundError,
     DatabaseError,
 )
+from app.infrastructure.cache.redis_cache import RedisCache
 from app.models import User, Chat
 from app.schemas.chat import ChatCreate, ChatUpdate
 
@@ -17,12 +18,14 @@ class ChatService:
             db: AsyncSession,
             chat_repository: ChatRepository,
             user_repository: UserRepository,
-            current_user: User
+            current_user_id: int,
+            cache: RedisCache
     ):
         self.db: AsyncSession = db
         self.chat_repository = chat_repository
         self.user_repository = user_repository
-        self.current_user = current_user
+        self.current_user_id = current_user_id
+        self.cache = cache
 
     async def create_chat(
             self,
@@ -130,21 +133,31 @@ class ChatService:
             self,
             chat_id: int
     ) -> Chat:
+        cache_key = f'chat:{chat_id}:full'
+
+        cached_chat = await self.cache.get(cache_key)
+        if cached_chat:
+            return cached_chat
+
         existing_chat = await self.chat_repository.get_chat_with_relationships(
             chat_id
         )
         if not existing_chat:
             raise ChatValidationError('Chat not found')
 
-        if self.current_user not in existing_chat.participants:
+        if self.current_user_id not in [
+            p.user_id for p in existing_chat.participants
+        ]:
             raise ChatValidationError('User not in chat')
 
+        await self.cache.set(cache_key, existing_chat)
         return existing_chat
 
     async def update_chat(
             self,
             chat_in: ChatUpdate,
     ) -> Chat:
+        cache_key = f'chat:{chat_in.chat_id}:*'
         existing_chat = await self._get_and_validate_chat_with_participants(
             chat_in.chat_id
         )
@@ -153,6 +166,7 @@ class ChatService:
                 existing_chat.name = chat_in.name
                 await self.db.commit()
                 await self.db.refresh(existing_chat, attribute_names=['name'])
+                await self.cache.delete_pattern(cache_key)
                 return existing_chat
         except SQLAlchemyError as db_exc:
             await self.db.rollback()
@@ -168,7 +182,9 @@ class ChatService:
         if not existing_chat:
             raise ChatValidationError('Chat not found')
 
-        if self.current_user not in existing_chat.participants:
+        if self.current_user_id not in [
+            p.user_id for p in existing_chat.participants
+        ]:
             raise ChatValidationError('User not in chat')
 
         return existing_chat
@@ -178,6 +194,7 @@ class ChatService:
             chat_id : int,
             participants_ids: list[int]
     ) -> Chat:
+        cache_key = f'chat:{chat_id}:*'
         existing_chat = await self._get_and_validate_chat_with_participants(
             chat_id
         )
@@ -190,7 +207,10 @@ class ChatService:
                     existing_chat.participants.append(user)
 
             await self.db.commit()
-            await self.db.refresh(existing_chat, attribute_names=['participants'])
+            await self.db.refresh(
+                existing_chat, attribute_names=['participants']
+            )
+            await self.cache.delete_pattern(cache_key)
 
             return existing_chat
         except SQLAlchemyError as db_exc:

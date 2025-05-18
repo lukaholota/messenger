@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 
-from app.api.deps import get_current_user, get_user_service
+from app.api.deps import get_user_service, \
+    get_current_user_db_bound
 from app.models import User
 from app.schemas.user import UserUpdate, UserUpdateRead, UserDelete
 from app.services.user_service import UserService
@@ -10,7 +11,7 @@ router = APIRouter()
 
 @router.get('/user')
 async def get_user(
-    user: User = Depends(get_current_user)
+    user: User = Depends(get_current_user_db_bound)
 ):
     return user
 

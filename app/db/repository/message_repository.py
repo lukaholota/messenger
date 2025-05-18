@@ -1,8 +1,6 @@
 from .base import BaseRepository
 from app.models.message import Message as MessageModel
 from app.schemas.message import MessageCreate, MessageUpdate
-from app.models.user import User as UserModel
-from app.models.chat import Chat as ChatModel
 
 
 class MessageRepository(
@@ -11,9 +9,13 @@ class MessageRepository(
     async def create_message(
             self,
             content: str,
-            sender: UserModel,
-            chat: ChatModel,
+            user_id: int,
+            chat_id: int,
     ) -> MessageModel | None:
-        new_message = MessageModel(content=content, sender=sender, chat=chat)
+        new_message = MessageModel(
+            content=content,
+            user_id=user_id,
+            chat_id=chat_id
+        )
         self.db.add(new_message)
         return new_message

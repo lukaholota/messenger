@@ -1,13 +1,14 @@
 from time import time
-from redis.asyncio import Redis
+
+from app.infrastructure.cache.redis_cache import RedisCache
 
 
-class RedisTokenBlacklistService:
+class CacheTokenBlacklistService:
     def __init__(
             self,
-            redis_client: Redis
+            cache: RedisCache
     ):
-        self.redis_client: Redis = redis_client
+        self.cache: RedisCache = cache
         self.blacklist_prefix = "blacklisted_tokens:"
 
     async def add_to_blacklist(
@@ -19,13 +20,13 @@ class RedisTokenBlacklistService:
 
         if original_expiration_timestamp > current_time:
             ttl = original_expiration_timestamp - current_time
-            await self.redis_client.setex(
-                f"{self.blacklist_prefix}{token_identifier}",
-                ttl,
-                'invalidated'
+            await self.cache.setex(
+                key=f"{self.blacklist_prefix}{token_identifier}",
+                ttl=ttl,
+                value='invalidated'
             )
 
     async def is_blacklisted(self, token_identifier: str) -> bool:
-        return await self.redis_client.exists(
+        return await self.cache.exists(
             f"{self.blacklist_prefix}{token_identifier}"
         )

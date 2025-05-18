@@ -36,7 +36,7 @@ services:
 
   redis:
     image: redis:8.0.0
-    container_name: messenger-redis
+    container_name: messenger-cache
     restart: always
     ports:
       - "6380:6379"
@@ -45,7 +45,7 @@ services:
     networks:
       - api-network
 
-    command: redis-server --requirepass ${REDIS_PASSWORD}
+    command: cache-server --requirepass ${REDIS_PASSWORD}
 
   rabbitmq:
     image: rabbitmq:3.13-management
