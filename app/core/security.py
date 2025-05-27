@@ -5,7 +5,7 @@ from datetime import timedelta, datetime, timezone
 from jose import jwt, ExpiredSignatureError
 from passlib.context import CryptContext
 from app.core.config import settings
-from app.exceptions import InvalidTokenCredentialsException
+from app.infrastructure.exceptions.exceptions import InvalidTokenCredentialsException
 from app.schemas.token import TokenPayload, CreatedTokenInfo
 
 password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -54,7 +54,7 @@ def decode_jwt_token(token: str) -> TokenPayload | None:
         token_type: str | None = payload.get('type')
         jti: str | None = payload.get('jti')
         expires_at: str | None = payload.get('exp')
-        if not user_id or not token_type:
+        if not user_id or not token_type or not jti or not expires_at:
             raise InvalidTokenCredentialsException
         token_data = TokenPayload(
             user_id=user_id,

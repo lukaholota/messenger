@@ -58,3 +58,9 @@ class RedisCache(Cache):
         await self._redis.setex(
             key, ttl or self._ttl, self._serializer.dumps(value)
         )
+
+    async def incr(self, key: str):
+        return await self._redis.incr(key)
+
+    async def expire(self, key: str, ttl: int | None = None) -> bool:
+        return await self._redis.expire(key, ttl or self._ttl)

@@ -10,7 +10,7 @@ from app.db.repository.user_repository import UserRepository
 from app.models import User
 from app.schemas.user import UserCreate, UserUpdate
 from app.core.security import hash_password, verify_password
-from app.exceptions import (
+from app.infrastructure.exceptions.exceptions import (
     DuplicateUsernameException,
     DuplicateEmailException,
     InvalidCredentialsException,

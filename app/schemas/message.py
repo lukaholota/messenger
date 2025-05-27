@@ -12,6 +12,10 @@ class MessageRead(MessageBase):
     content: str
     sent_at: datetime
     user_id: int
+    chat_id: int
+
+    async def to_json(self):
+        return self.model_dump(mode='json')
 
     class Config:
         from_attributes = True

@@ -9,11 +9,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.security import create_jwt_token, decode_jwt_token
 from app.db.repository.refresh_token_repository import RefreshTokenRepository
-from app.exceptions import InvalidTokenCredentialsException
+from app.infrastructure.exceptions.exceptions import InvalidTokenCredentialsException
 from app.models.refresh_token import RefreshToken
 from app.schemas.token import TokenPairInfo, TokenPayload
-from app.services.cache_token_blacklist_service import \
-    CacheTokenBlacklistService
+from app.services.redis_token_blacklist_service import \
+    RedisTokenBlacklistService
 
 logger = getLogger(__name__)
 
@@ -24,11 +24,11 @@ class AuthService:
             *,
             db: AsyncSession,
             refresh_token_repository: RefreshTokenRepository,
-            cache_token_blacklist_service: CacheTokenBlacklistService
+            redis_token_blacklist_service: RedisTokenBlacklistService
     ):
         self.db = db
         self.refresh_token_repository = refresh_token_repository
-        self.cache_token_blacklist_service = cache_token_blacklist_service
+        self.redis_token_blacklist_service = redis_token_blacklist_service
 
     async def get_refresh_token_payload(self, refresh_token: str) -> (
             TokenPayload):
@@ -117,7 +117,7 @@ class AuthService:
             ))
             await self.db.commit()
 
-            await self.cache_token_blacklist_service.add_to_blacklist(
+            await self.redis_token_blacklist_service.add_to_blacklist(
                 token_identifier=access_token_payload.jti,
                 original_expiration_timestamp=access_token_payload.expires_at
             )

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+from fastapi_limiter.depends import RateLimiter
 
 from app.api.deps import get_user_service, \
     get_current_user_db_bound
@@ -16,7 +17,11 @@ async def get_user(
     return user
 
 
-@router.post('/user/update', response_model=UserUpdateRead)
+@router.post(
+    '/user/update',
+    response_model=UserUpdateRead,
+    dependencies=[Depends(RateLimiter(times=4, seconds=60))],
+)
 async def update_user(
         user_in: UserUpdate,
         user_service: UserService = Depends(get_user_service)

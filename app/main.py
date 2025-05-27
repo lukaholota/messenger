@@ -3,11 +3,12 @@ from contextlib import asynccontextmanager
 
 import sqlalchemy
 from fastapi import FastAPI, Request
+from fastapi_limiter import FastAPILimiter
 from jose import JWTError
 from starlette.responses import JSONResponse
 from starlette.status import HTTP_503_SERVICE_UNAVAILABLE, HTTP_409_CONFLICT, \
     HTTP_401_UNAUTHORIZED, HTTP_400_BAD_REQUEST, \
-    HTTP_500_INTERNAL_SERVER_ERROR
+    HTTP_500_INTERNAL_SERVER_ERROR, HTTP_403_FORBIDDEN
 
 from app.api.v1 import general
 from app.api.v1 import auth
@@ -15,22 +16,26 @@ from app.api.v1 import chats
 from app.api.v1 import messages
 from app.api.v1 import users
 from app.api.v1 import scheduled_messages
+from app.api.v1.ws import chat as chat_ws
 
 from app.db.base import Base
 from app.db.session import engine
-from app.infrastructure.cache.connection import add_redis_client_to_app_state
+from app.infrastructure.cache.connection import get_redis_client
 
 import app.models as models  # noqa: F401
-from app.exceptions import (
+from app.infrastructure.exceptions.exceptions import (
     DuplicateEmailException, DuplicateUsernameException,
     InvalidCredentialsException, ChatValidationError, UsersNotFoundError,
     DatabaseError, MessageValidationError, InvalidTokenCredentialsException,
     UserDeleteError, MessagingConnectionError, InvalidMessageDataError,
-    MessagePublishError, ScheduledInPastError, ScheduledMessageValidationError
+    MessagePublishError, ScheduledInPastError, ScheduledMessageValidationError,
+    DeletedUserError, InvalidAccessTokenException, RedisConnectionError,
+    TokenInvalidatedError
 )
+from app.middlewares.rate_limit_middleware import RateLimitMiddleware
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S'
 )
@@ -42,16 +47,18 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Connecting to Redis...")
-    await add_redis_client_to_app_state(app)
+    redis_client = await get_redis_client()
+    app.state.redis = redis_client
+    await FastAPILimiter.init(app.state.redis)
 
     yield
 
     logger.info("Disconnecting from Redis...")
     if (
-            hasattr(app.state, 'redis_client') and
-            app.state.redis_client is not None
+            hasattr(app.state, 'redis') and
+            app.state.redis is not None
     ):
-        await app.state.redis_client.close()
+        await app.state.redis.close()
         logger.info("Disconnected from Redis")
 
 app = FastAPI(
@@ -61,6 +68,9 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# app.add_middleware(AuthMiddleware)
+# app.add_middleware(RateLimitMiddleware)
+
 api_prefix = "/api/v1"
 
 app.include_router(general.router, prefix=api_prefix)
@@ -69,6 +79,8 @@ app.include_router(chats.router, prefix=api_prefix)
 app.include_router(messages.router, prefix=api_prefix)
 app.include_router(users.router, prefix=api_prefix)
 app.include_router(scheduled_messages.router, prefix=api_prefix)
+app.include_router(chat_ws.router, prefix=api_prefix)
+
 
 
 def create_tables():
@@ -184,6 +196,71 @@ async def messaging_connection_error_handler(
     return JSONResponse(
         status_code=HTTP_500_INTERNAL_SERVER_ERROR,
         content={"detail": "Connection to messaging service has failed"}
+    )
+
+
+@app.exception_handler(DeletedUserError)
+async def deleted_user_error_handler(
+        _request: Request,
+        exc: DeletedUserError
+):
+    logger.error(f"Delete user error: {exc}", exc_info=exc)
+    return JSONResponse(
+        status_code=HTTP_403_FORBIDDEN,
+        content={"detail": "This user is deleted"},
+        headers={"WWW-Authenticate": "Bearer"}
+    )
+
+
+@app.exception_handler(InvalidAccessTokenException)
+async def invalid_access_token_exception_handler(
+        _request: Request,
+        exc: InvalidAccessTokenException
+):
+    logger.error(f"invalid access token exception: {exc}", exc_info=exc)
+    return JSONResponse(
+        status_code=HTTP_401_UNAUTHORIZED,
+        content={"detail": "invalid access token exception"},
+        headers={"WWW-Authenticate": "Bearer"}
+    )
+
+
+@app.exception_handler(InvalidTokenCredentialsException)
+async def invalid_token_credentials_exception_handler(
+        _request: Request,
+        exc: InvalidTokenCredentialsException
+):
+    logger.error(f"invalid token credentials exception: {exc}",
+                 exc_info=exc)
+    return JSONResponse(
+        status_code=HTTP_401_UNAUTHORIZED,
+        content={"detail": "Invalid token credentials"},
+        headers={"WWW-Authenticate": "Bearer"}
+    )
+
+
+@app.exception_handler(TokenInvalidatedError)
+async def token_invalidated_error_handler(
+        _request: Request,
+        exc: TokenInvalidatedError
+):
+    logger.error(f"Token invalidated error: {exc}", exc_info=exc)
+    return JSONResponse(
+        status_code=HTTP_401_UNAUTHORIZED,
+        content={"detail": "Token invalidated error"},
+        headers={"WWW-Authenticate": "Bearer"}
+    )
+
+
+@app.exception_handler(RedisConnectionError)
+async def redis_connection_error_handler(
+        _request: Request,
+        exc: RedisConnectionError
+):
+    logger.error(f"redis connection error: {exc}", exc_info=exc)
+    return JSONResponse(
+        status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": "redis connection error"},
     )
 
 

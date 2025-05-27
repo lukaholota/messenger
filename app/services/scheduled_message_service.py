@@ -5,12 +5,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.repository.chat_repository import ChatRepository
 from app.db.repository.scheduled_message_repository import \
     ScheduledMessageRepository
-from app.exceptions import ScheduledInPastError, MessagingConnectionError, \
+from app.infrastructure.exceptions.exceptions import ScheduledInPastError, MessagingConnectionError, \
     InvalidMessageDataError, MessagePublishError, ChatValidationError, \
     ScheduledMessageValidationError
 from app.models.scheduled_message import ScheduledMessage, \
     ScheduledMessageStatus
-from app.infrastructure.message_queue.rabbitmq_client import publish_scheduled_message
 
 
 class ScheduledMessageService:
@@ -113,7 +112,7 @@ class ScheduledMessageService:
             'created_at': now.isoformat(),
         }
         try:
-            await publish_scheduled_message(message_payload, delay_seconds)
+            await publish_delayed(message_payload, delay_seconds)
         except MessagingConnectionError:
             raise
         except InvalidMessageDataError:

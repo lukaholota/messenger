@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     RABBITMQ_WAITING_QUEUE: str
     RABBITMQ_PROCESSING_QUEUE: str
     RABBITMQ_DLX_NAME: str
+    RABBITMQ_REGULAR_MESSAGE_QUEUE: str
 
     model_config = SettingsConfigDict(
         env_file=ENV_FILE_PATH,

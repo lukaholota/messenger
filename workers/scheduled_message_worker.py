@@ -123,22 +123,12 @@ async def process_message_logic(raw_message_body: bytes):
                     ScheduledMessageStatus.PROCESSING
                 )
                 await db.commit()
-
-            user_repository = UserRepository(db, User)
-            user: User | None = await user_repository.get_by_id(user_id)
-            if not user:
-                logger.error(
-                    f"User with id {user_id} not found. "
-                    f"Cannot process message."
-                )
-                raise ValueError(f"User with id {user_id} not found")
-
             chat_repository = ChatRepository(db, Chat)
             message_repository = MessageRepository(db, Message)
 
             message_service = MessageService(
                 db,
-                current_user=user,
+                current_user_id=user_id,
                 chat_repository=chat_repository,
                 message_repository=message_repository,
             )

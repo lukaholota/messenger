@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from fastapi.params import Depends
+from fastapi_limiter.depends import RateLimiter
 
 from app.api.deps import get_scheduled_message_service
 from app.schemas.scheduled_message import ScheduledMessageCreate, \
@@ -68,7 +69,8 @@ async def delete_scheduled_message(
 
 @router.post(
     '/update-scheduled-message',
-    response_model=ScheduledMessageUpdateResponse
+    response_model=ScheduledMessageUpdateResponse,
+    dependencies=[Depends(RateLimiter(times=10, seconds=60))]
 )
 async def update_scheduled_message(
         scheduled_message_in: ScheduledMessageUpdate,

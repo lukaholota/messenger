@@ -1,6 +1,3 @@
-from fastapi import HTTPException, status
-
-
 class ServiceException(Exception):
     pass
 
@@ -68,49 +65,34 @@ class UserDeleteError(ServiceException):
         super().__init__(self.detail)
 
 
-class DeletedUserError(HTTPException):
-    def __init__(self):
-        super().__init__(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail='This user is deleted',
-            headers={"WWW-Authenticate": "Bearer"}
-        )
+class DeletedUserError(Exception):
+    def __init__(self, detail: str | None = None):
+        self.detail = detail
+        super().__init__(self.detail)
 
 
-class InvalidAccessTokenException(HTTPException):
-    def __init__(self):
-        super().__init__(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail='Invalid access token',
-            headers={"WWW-Authenticate": "Bearer"}
-        )
+class InvalidAccessTokenException(Exception):
+    def __init__(self, detail: str | None = None):
+        self.detail = detail
+        super().__init__(self.detail)
 
 
-class InvalidTokenCredentialsException(HTTPException):
-    def __init__(self):
-        super().__init__(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail='Invalid token credentials',
-            headers={"WWW-Authenticate": "Bearer"}
-        )
+class InvalidTokenCredentialsException(Exception):
+    def __init__(self, detail: str | None = None):
+        self.detail = detail
+        super().__init__(self.detail)
 
 
-class RedisConnectionError(HTTPException):
-    def __init__(self):
-        super().__init__(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail='cache connection error',
-            headers={"WWW-Authenticate": "Bearer"}
-        )
+class RedisConnectionError(Exception):
+    def __init__(self, detail: str | None = None):
+        self.detail = detail
+        super().__init__(self.detail)
 
 
-class TokenInvalidatedError(HTTPException):
-    def __init__(self):
-        super().__init__(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail='Token invalidated error',
-            headers={"WWW-Authenticate": "Bearer"}
-        )
+class TokenInvalidatedError(Exception):
+    def __init__(self, detail: str | None = None):
+        self.detail = detail
+        super().__init__(self.detail)
 
 
 class MessagingError(Exception):

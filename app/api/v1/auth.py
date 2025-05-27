@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, status, Body
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi_limiter.depends import RateLimiter
 
-from app.exceptions import DeletedUserServiceError, DeletedUserError
+from app.infrastructure.exceptions.exceptions import DeletedUserServiceError, DeletedUserError
 from app.schemas.token import TokenRead, TokenPairInfo, TokenPayload
 from app.schemas.user import UserCreate, UserRead
 from app.schemas.user import UserWithToken
@@ -18,7 +19,8 @@ router = APIRouter()
 @router.post(
     '/register',
     response_model=UserWithToken,
-    status_code=status.HTTP_201_CREATED
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(RateLimiter(times=1, seconds=60))],
 )
 async def register_user(
         user_in: UserCreate,
@@ -83,7 +85,11 @@ async def login_for_access_token(
     }
 
 
-@router.post('/auth/refresh', response_model=TokenRead)
+@router.post(
+    '/auth/refresh',
+    response_model=TokenRead,
+    dependencies=[Depends(RateLimiter(times=3, seconds=60))]
+)
 async def make_token_rotation(
         refresh_token: str = Body(..., embed=True),
         auth_service: AuthService = Depends(get_auth_service),

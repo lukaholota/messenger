@@ -3,8 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.repository.chat_repository import ChatRepository
 from app.db.repository.message_repository import MessageRepository
-from app.exceptions import DatabaseError, MessageValidationError
-from app.infrastructure.cache.redis_cache import RedisCache
+from app.infrastructure.exceptions.exceptions import DatabaseError, MessageValidationError
 from app.models import Message
 from app.schemas.message import MessageCreate
 
@@ -17,17 +16,13 @@ class MessageService:
             message_repository: MessageRepository,
             chat_repository: ChatRepository,
             current_user_id: int,
-            cache: RedisCache
     ):
         self.db = db
         self.message_repository = message_repository
         self.chat_repository = chat_repository
         self.current_user_id = current_user_id
-        self.cache = cache
 
     async def create_message(self, message_in: MessageCreate) -> Message:
-        cache_key = f'chat:{message_in.chat_id}:*'
-
         if not message_in.content:
             raise MessageValidationError('The message is empty')
 
@@ -50,7 +45,6 @@ class MessageService:
             )
             await self.db.commit()
             await self.db.refresh(message)
-            await self.cache.delete_pattern(cache_key)
 
             return message
         except SQLAlchemyError as db_exc:
