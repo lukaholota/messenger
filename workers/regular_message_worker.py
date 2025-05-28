@@ -160,8 +160,8 @@ async def process_message_logic(raw_message_body: bytes):
 
 
             await redis_pubsub.publish(f'chat:{chat_id}', json.dumps({
-                'type': 'message',
-                'message_data': data
+                'event': 'message_sent',
+                'data': data
             }))
 
             logger.info(f'published message {data} to channel "chat:{chat_id}"'

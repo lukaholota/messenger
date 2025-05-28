@@ -20,4 +20,3 @@ class ChatWebSocketConnectionManager:
     async def send_message_to_user(self, message: dict):
         for client_ws in self.active_connections[message['user_id']]:
             await client_ws.send_json(message)
-

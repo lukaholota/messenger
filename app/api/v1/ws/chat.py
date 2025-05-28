@@ -7,6 +7,7 @@ from app.db.session import get_lifespan_db
 from app.infrastructure.cache.connection import get_lifespan_redis_client
 from app.infrastructure.exceptions.websocket import WebSocketException
 from app.schemas.message import MessageCreate
+from app.services.ws.chat_read_service import ChatReadService
 from app.services.ws.web_socket_service_container import WebSocketServiceContainer
 from app.services.ws.chat_web_socket_service import ChatWebSocketService
 
@@ -17,6 +18,7 @@ router = APIRouter()
 async def chat_websocket(
         websocket: WebSocket,
 ):
+    service = None
     try:
         await websocket.accept()
 
@@ -37,7 +39,8 @@ async def chat_websocket(
                     get_redis_token_blacklist_service(),
                 redis=container.redis,
             )
-            service = ChatWebSocketService(
+
+            chat_service = ChatWebSocketService(
                 websocket=websocket,
                 connection_manager=await container.
                     get_chat_websocket_connection_manager(),
@@ -48,24 +51,41 @@ async def chat_websocket(
                 chat_repository=container.chat_repository,
             )
 
-            await service.start(current_user_id)
+            chat_read_service = ChatReadService(
+                db=container.db,
+                chat_read_status_repository=container.
+                    chat_read_status_repository,
+                pubsub=container.pubsub,
+            )
+
+            await chat_service.start(current_user_id)
 
             while True:
-                data = await websocket.receive_json()
-                try:
-                    message_in = MessageCreate(
-                        chat_id=data.get('chat_id'),
-                        content=data.get('content')
-                    )
-                except ValidationError as e:
-                    raise WebSocketException(str(e))
+                data_in = await websocket.receive_json()
+                request_type = data_in.get('type')
+                data = data_in.get('data')
+                if request_type == 'new_message':
+                    try:
+                        message_in = MessageCreate(
+                            chat_id=data.get('chat_id'),
+                            content=data.get('content')
+                        )
+                    except ValidationError as e:
+                        raise WebSocketException(str(e))
 
-                await service.handle_message(current_user_id, message_in)
+                    await chat_service.handle_new_message(
+                        current_user_id, message_in
+                    )
+                if request_type == 'read_message':
+
+
+
     except WebSocketException as e:
         await websocket.send_json({
             'type': 'error',
             'message': e.message
         })
-        await websocket.close()
+        if service:
+            await chat_service.stop(current_user_id)
     except WebSocketDisconnect:
-      await service.stop(current_user_id)
+      await chat_service.stop(current_user_id)
