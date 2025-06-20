@@ -1,4 +1,5 @@
 import asyncio
+import json
 from typing import List, Dict, Callable, Awaitable
 
 from redis.asyncio.client import PubSub
@@ -8,6 +9,7 @@ from app.infrastructure.cache.redis_pubsub import RedisPubSub
 from logging import getLogger
 
 from app.infrastructure.exceptions.websocket import WebSocketException
+from app.schemas.event import RedisEvent
 
 logger = getLogger(__name__)
 
@@ -25,7 +27,7 @@ class RedisChatSubscriptionService:
             self,
             user_id,
             chat_ids,
-            callback: Callable[[str], Awaitable[None]],
+            callback: Callable[[RedisEvent], Awaitable[None]],
     ):
         for chat_id in chat_ids:
             channel = f'chat:{chat_id}'
@@ -43,9 +45,11 @@ class RedisChatSubscriptionService:
         try:
             async for message in pubsub.listen():
                 if message['type'] == 'message':
-                    logger.debug(f'User got message {message}')
-                    data = message['data']
-                    await callback(data)
+                    logger.debug(f'Redis Pubsub got a message {message}')
+                    data = json.loads(message['data'])
+
+                    redis_event = RedisEvent(**data)
+                    await callback(redis_event)
         except Exception as e:
             logger.exception(f'Error in listen_to_channel {e}')
             raise WebSocketException('error listening to channel')

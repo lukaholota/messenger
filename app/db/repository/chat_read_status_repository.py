@@ -41,3 +41,6 @@ class ChatReadStatusRepository(
         last_read_message.read_at = datetime.now(timezone.utc)
         last_read_message.last_read_message_id = new_last_read_message_id
         return last_read_message
+
+    async def create_chat_read_status(self, chat_id: int, user_id: int):
+        return ChatReadStatus(chat_id=chat_id, user_id=user_id)

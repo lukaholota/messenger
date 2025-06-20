@@ -155,9 +155,9 @@ async def process_message_logic(raw_message_body: bytes):
                 user_id=created_message.user_id,
                 chat_id=created_message.chat_id,
                 content=created_message.content,
-                sent_at=created_message.sent_at
-            ).to_json()
-
+                sent_at=created_message.sent_at.isoformat()
+            ).model_dump(mode='json')
+            print(data)
 
             await redis_pubsub.publish(f'chat:{chat_id}', json.dumps({
                 'event': 'message_sent',

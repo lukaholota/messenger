@@ -65,6 +65,6 @@ async def add_chat_participants(
 ):
     chat = await chat_service.add_participants(
         in_data.chat_id,
-        in_data.participants_ids
+        in_data.participant_ids
     )
     return chat

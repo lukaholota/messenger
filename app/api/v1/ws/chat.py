@@ -6,11 +6,12 @@ from app.api.dependencies.auth import get_current_user_id_ws
 from app.db.session import get_lifespan_db
 from app.infrastructure.cache.connection import get_lifespan_redis_client
 from app.infrastructure.exceptions.websocket import WebSocketException
-from app.schemas.message import MessageCreate
-from app.services.ws.chat_read_service import ChatReadService
+from app.schemas.event import WebSocketEvent
 from app.services.ws.web_socket_service_container import WebSocketServiceContainer
 from app.services.ws.chat_web_socket_service import ChatWebSocketService
+from logging import getLogger
 
+logger = getLogger(__name__)
 router = APIRouter()
 
 
@@ -18,7 +19,8 @@ router = APIRouter()
 async def chat_websocket(
         websocket: WebSocket,
 ):
-    service = None
+    current_user_id = None
+    chat_service = None
     try:
         await websocket.accept()
 
@@ -49,43 +51,58 @@ async def chat_websocket(
                 message_handler=await container.
                     get_message_websocket_handler(),
                 chat_repository=container.chat_repository,
-            )
-
-            chat_read_service = ChatReadService(
-                db=container.db,
-                chat_read_status_repository=container.
-                    chat_read_status_repository,
-                pubsub=container.pubsub,
+                chat_read_service=await container.
+                    get_chat_read_service(),
             )
 
             await chat_service.start(current_user_id)
 
             while True:
-                data_in = await websocket.receive_json()
-                request_type = data_in.get('type')
-                data = data_in.get('data')
-                if request_type == 'new_message':
-                    try:
-                        message_in = MessageCreate(
-                            chat_id=data.get('chat_id'),
-                            content=data.get('content')
-                        )
-                    except ValidationError as e:
-                        raise WebSocketException(str(e))
+                try:
+                    data_in = await websocket.receive_json()
 
-                    await chat_service.handle_new_message(
-                        current_user_id, message_in
+                    if not data_in:
+                        continue
+
+                    websocket_event = WebSocketEvent(**data_in)
+
+                    await chat_service.websocket_dispatcher.dispatch(
+                        current_user_id, websocket_event
                     )
-                if request_type == 'read_message':
-
-
-
+                except ValidationError as e:
+                    await websocket.send_json({
+                        'type': 'error',
+                        'message': f'Invalid message format: {e}'
+                    })
+                except WebSocketException as e:
+                    await websocket.send_json({
+                        'type': 'error',
+                        'message': e.message
+                    })
+                except Exception as e:
+                    logger.error(f'An unexpected exception occurred: {e}',
+                                 exc_info=e
+                                 )
+                    await websocket.send_json({
+                        'type': 'error',
+                        'message': f'An unexpected error '
+                                   f'occurred processing your message'
+                    })
     except WebSocketException as e:
         await websocket.send_json({
             'type': 'error',
             'message': e.message
         })
-        if service:
-            await chat_service.stop(current_user_id)
     except WebSocketDisconnect:
-      await chat_service.stop(current_user_id)
+        logger.info(f"WebSocket disconnected for user {current_user_id}")
+    except Exception as e:
+        await websocket.send_json({
+            'type': 'error',
+            'message': f'Critical exception occurred: {e}'
+        })
+        logger.error(f'Critical exception occurred: {e}')
+    finally:
+        if chat_service and current_user_id:
+            await chat_service.stop(current_user_id)
+        else:
+

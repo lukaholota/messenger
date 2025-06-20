@@ -3,6 +3,8 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import decode_jwt_token
+from app.db.repository.chat_read_status_repository import \
+    ChatReadStatusRepository
 from app.db.repository.chat_repository import ChatRepository
 from app.db.repository.message_repository import MessageRepository
 from app.db.repository.refresh_token_repository import RefreshTokenRepository
@@ -17,6 +19,7 @@ from app.infrastructure.cache.redis_cache import RedisCache
 from app.infrastructure.cache.redis_pubsub import RedisPubSub
 from app.infrastructure.message_queue.rabbitmq_client import RabbitMQClient
 from app.models import User, Chat, Message
+from app.models.chat_read_status import ChatReadStatus
 from app.models.scheduled_message import ScheduledMessage
 from app.schemas.token import TokenPayload
 from app.services.auth_service import AuthService
@@ -93,6 +96,13 @@ async def get_refresh_token_repository(
 ) -> RefreshTokenRepository:
     refresh_token_repository = RefreshTokenRepository(db)
     return refresh_token_repository
+
+
+async def get_chat_read_status_repository(
+    db: AsyncSession = Depends(get_db_session)
+) -> ChatReadStatusRepository:
+    chat_read_status_repository = ChatReadStatusRepository(db, ChatReadStatus)
+    return chat_read_status_repository
 
 
 async def get_redis_token_blacklist_service(
@@ -190,6 +200,8 @@ async def get_chat_service(
         db: AsyncSession = Depends(get_db_session),
         chat_repository: ChatRepository = Depends(get_chat_repository),
         user_repository: UserRepository = Depends(get_user_repository),
+        chat_read_status_repository: ChatReadStatusRepository =
+            Depends(get_chat_read_status_repository),
         current_user_id: int = Depends(get_current_user_id),
         redis: RedisCache = Depends(get_redis)
 ) -> ChatService:
@@ -197,6 +209,7 @@ async def get_chat_service(
         db=db,
         chat_repository=chat_repository,
         user_repository=user_repository,
+        chat_read_status_repository=chat_read_status_repository,
         current_user_id=current_user_id,
         redis=redis
     )

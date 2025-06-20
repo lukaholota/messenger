@@ -12,13 +12,18 @@ class ChatReadStatus(Base):
     last_read_message_id: Mapped[int] = mapped_column(
         Integer,
         ForeignKey('message.message_id', ondelete='CASCADE'),
-        primary_key=True
+        nullable=True,
+        default=None
     )
     chat_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey('chat.chat_id', ondelete='CASCADE')
+        Integer,
+        ForeignKey('chat.chat_id', ondelete='CASCADE'),
+        primary_key=True,
     )
     user_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey('user.user_id', ondelete='CASCADE')
+        Integer,
+        ForeignKey('user.user_id', ondelete='CASCADE'),
+        primary_key=True,
     )
     read_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

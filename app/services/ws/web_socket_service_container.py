@@ -13,6 +13,7 @@ from app.models import User, Chat
 from app.models.chat_read_status import ChatReadStatus
 from app.services.redis_token_blacklist_service import \
     RedisTokenBlacklistService
+from app.services.ws.chat_read_service import ChatReadService
 from app.services.ws.chat_web_socket_connection_manager import \
     ChatWebSocketConnectionManager
 from app.services.ws.message_web_socket_handler import MessageWebSocketHandler
@@ -48,3 +49,10 @@ class WebSocketServiceContainer:
 
     async def get_chat_websocket_connection_manager(self):
         return ChatWebSocketConnectionManager()
+
+    async def get_chat_read_service(self):
+        return ChatReadService(
+            db=self.db,
+            chat_read_status_repository=self.chat_read_status_repository,
+            pubsub=self.pubsub,
+        )

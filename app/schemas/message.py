@@ -14,9 +14,6 @@ class MessageRead(MessageBase):
     user_id: int
     chat_id: int
 
-    async def to_json(self):
-        return self.model_dump(mode='json')
-
     class Config:
         from_attributes = True
 
@@ -24,6 +21,7 @@ class MessageRead(MessageBase):
 class MessageCreate(MessageBase):
     chat_id: int
     content: str
+    user_id: int | None = None
 
 
 class MessageUpdate(MessageBase):

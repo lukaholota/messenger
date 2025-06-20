@@ -10,7 +10,7 @@ class ChatBase(BaseModel):
 
 
 class ChatCreate(ChatBase):
-    participants_ids: list[int]
+    participant_ids: list[int]
     is_group: bool
 
 
@@ -46,4 +46,4 @@ class ChatUpdateRead(ChatBase):
 
 class ChatAddParticipants(BaseModel):
     chat_id: int
-    participants_ids: list[int]
+    participant_ids: list[int]
