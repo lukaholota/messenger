@@ -10,11 +10,18 @@ ENV_FILE_PATH = ROOT_DIR / '.env'
 
 class Settings(BaseSettings):
     MYSQL_HOST: str
+    MYSQL_PORT: int
     MYSQL_USER: str
     MYSQL_PASSWORD: str
     MYSQL_DATABASE: str
 
-    DATABASE_URL: str | None = None
+    @property
+    def DATABASE_URL(self) -> str:
+        return (
+            f"mysql+aiomysql://{self.MYSQL_USER}:{self.MYSQL_PASSWORD}"
+            f"@{self.MYSQL_HOST}:{self.MYSQL_PORT}/{self.MYSQL_DATABASE}"
+            "?charset=utf8mb4"
+        )
 
     REDIS_HOST:str
     REDIS_PORT: int

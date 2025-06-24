@@ -18,8 +18,6 @@ from app.api.v1 import users
 from app.api.v1 import scheduled_messages
 from app.api.v1.ws import chat as chat_ws
 
-from app.db.base import Base
-from app.db.session import engine
 from app.infrastructure.cache.connection import get_redis_client
 
 import app.models as models  # noqa: F401
@@ -32,7 +30,7 @@ from app.infrastructure.exceptions.exceptions import (
     DeletedUserError, InvalidAccessTokenException, RedisConnectionError,
     TokenInvalidatedError
 )
-from app.middlewares.rate_limit_middleware import RateLimitMiddleware
+# from app.middlewares.rate_limit_middleware import RateLimitMiddleware
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -80,11 +78,6 @@ app.include_router(messages.router, prefix=api_prefix)
 app.include_router(users.router, prefix=api_prefix)
 app.include_router(scheduled_messages.router, prefix=api_prefix)
 app.include_router(chat_ws.router, prefix=api_prefix)
-
-
-
-def create_tables():
-    Base.metadata.create_all(bind=engine)
 
 
 @app.exception_handler(DatabaseError)
@@ -372,6 +365,3 @@ def generic_exception_handler(
         status_code=HTTP_500_INTERNAL_SERVER_ERROR,
         content={"detail": "An unexpected internal server error occurred"}
     )
-
-if __name__ == "__main__":
-    create_tables()

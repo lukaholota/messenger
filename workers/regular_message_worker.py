@@ -9,6 +9,8 @@ from logging import getLogger
 
 from app.core.config import settings
 from app.db.repository.chat_repository import ChatRepository
+from app.db.repository.message_delivery_repository import \
+    MessageDeliveryRepository
 from app.db.repository.message_repository import MessageRepository
 
 from app.db.session import AsyncSessionFactory
@@ -16,7 +18,7 @@ from app.infrastructure.cache.connection import get_redis_client
 from app.infrastructure.cache.redis_pubsub import RedisPubSub
 from app.infrastructure.message_queue.rabbitmq_connection_provider import \
     RabbitMQConnectionProvider
-from app.models import Chat, Message
+from app.models import Chat, Message, MessageDelivery
 
 from app.schemas.message import MessageCreate, MessageRead
 from app.services.message_service import MessageService
@@ -131,12 +133,16 @@ async def process_message_logic(raw_message_body: bytes):
         async with AsyncSessionFactory() as db:
             chat_repository = ChatRepository(db, Chat)
             message_repository = MessageRepository(db, Message)
+            message_delivery_repository = MessageDeliveryRepository(
+                db, MessageDelivery
+            )
 
             message_service = MessageService(
                 db,
                 current_user_id=user_id,
                 chat_repository=chat_repository,
                 message_repository=message_repository,
+                message_delivery_repository=message_delivery_repository
             )
 
             message_in = MessageCreate(

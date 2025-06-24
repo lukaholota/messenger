@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Integer, ForeignKey, DateTime, String, func
+from sqlalchemy import Integer, ForeignKey, DateTime, String, func, Text
 from sqlalchemy import Enum as SQLAlchemyEnum
 
 from app.db.base import Base
@@ -30,7 +30,7 @@ class ScheduledMessage(Base):
     )
     user_id: Mapped[int] = mapped_column(
         Integer,
-        ForeignKey('user.user_id'),
+        ForeignKey('user.user_id', ondelete='CASCADE'),
         nullable=False,
     )
     chat_id: Mapped[int] = mapped_column(
@@ -39,7 +39,7 @@ class ScheduledMessage(Base):
         nullable=False,
     )
     content: Mapped[str] = mapped_column(
-        String,
+        Text,
         nullable=False
     )
     scheduled_send_at: Mapped[datetime] = mapped_column(
@@ -55,7 +55,7 @@ class ScheduledMessage(Base):
         nullable=False,
     )
     error_message: Mapped[str] = mapped_column(
-        String,
+        Text,
         nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(

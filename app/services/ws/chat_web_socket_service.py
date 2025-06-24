@@ -84,6 +84,9 @@ class ChatWebSocketService:
             handler=self.websocket_event_handler.handle_read_message
         )
 
+    async def send_all_unread_messages(self):
+
+
     async def stop(self, user_id):
         await self.connection_manager.disconnect(user_id, self.websocket)
         await self.subscription_service.cleanup()

@@ -9,12 +9,14 @@ from logging import getLogger
 
 from app.core.config import settings
 from app.db.repository.chat_repository import ChatRepository
+from app.db.repository.message_delivery_repository import \
+    MessageDeliveryRepository
 from app.db.repository.message_repository import MessageRepository
 from app.db.repository.scheduled_message_repository import \
     ScheduledMessageRepository
 from app.db.repository.user_repository import UserRepository
 from app.db.session import AsyncSessionFactory
-from app.models import User, Chat, Message
+from app.models import User, Chat, Message, MessageDelivery
 from app.models.scheduled_message import ScheduledMessage, \
     ScheduledMessageStatus
 from app.schemas.message import MessageCreate
@@ -125,12 +127,16 @@ async def process_message_logic(raw_message_body: bytes):
                 await db.commit()
             chat_repository = ChatRepository(db, Chat)
             message_repository = MessageRepository(db, Message)
+            message_delivery_repository = MessageDeliveryRepository(
+                db, MessageDelivery
+            )
 
             message_service = MessageService(
                 db,
                 current_user_id=user_id,
                 chat_repository=chat_repository,
                 message_repository=message_repository,
+                message_delivery_repository=message_delivery_repository
             )
 
             message_in_schema = MessageCreate(

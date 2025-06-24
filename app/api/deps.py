@@ -6,6 +6,8 @@ from app.core.security import decode_jwt_token
 from app.db.repository.chat_read_status_repository import \
     ChatReadStatusRepository
 from app.db.repository.chat_repository import ChatRepository
+from app.db.repository.message_delivery_repository import \
+    MessageDeliveryRepository
 from app.db.repository.message_repository import MessageRepository
 from app.db.repository.refresh_token_repository import RefreshTokenRepository
 from app.db.repository.scheduled_message_repository import \
@@ -18,7 +20,7 @@ from app.infrastructure.cache.json_serializer import JsonSerializer
 from app.infrastructure.cache.redis_cache import RedisCache
 from app.infrastructure.cache.redis_pubsub import RedisPubSub
 from app.infrastructure.message_queue.rabbitmq_client import RabbitMQClient
-from app.models import User, Chat, Message
+from app.models import User, Chat, Message, MessageDelivery
 from app.models.chat_read_status import ChatReadStatus
 from app.models.scheduled_message import ScheduledMessage
 from app.schemas.token import TokenPayload
@@ -79,6 +81,15 @@ async def get_message_repository(
 ) -> MessageRepository:
     message_repository = MessageRepository(db, Message)
     return message_repository
+
+
+async def get_message_delivery_repository(
+        db: AsyncSession = Depends(get_db_session)
+) -> MessageDeliveryRepository:
+    message_delivery_repository = MessageDeliveryRepository(
+        db, MessageDelivery
+    )
+    return message_delivery_repository
 
 
 async def get_scheduled_message_repository(
@@ -219,6 +230,7 @@ async def get_chat_service(
 async def get_message_service(
         db: AsyncSession = Depends(get_db_session),
         message_repository = Depends(get_message_repository),
+        message_delivery_repository = Depends(get_message_delivery_repository),
         chat_repository: ChatRepository = Depends(get_chat_repository),
         current_user_id: int = Depends(get_current_user_id),
 ) -> MessageService:
@@ -226,6 +238,7 @@ async def get_message_service(
         db,
         message_repository=message_repository,
         chat_repository=chat_repository,
+        message_delivery_repository=message_delivery_repository,
         current_user_id=current_user_id,
     )
     return message_service

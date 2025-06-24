@@ -48,3 +48,6 @@ class ChatReadService:
             f'chat:{chat_id}',
             json.dumps({'event': 'read_status_updated', 'data': data_out})
         )
+
+    async def send_unread(self, user_id: int):
+

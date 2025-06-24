@@ -46,9 +46,8 @@ jobs:
           MYSQL_PASSWORD='${{ secrets.PROD_DB_PASSWORD }}' 
           MYSQL_HOST=${{ secrets.PROD_DB_HOST }}
           MYSQL_NAME=${{ secrets.PROD_DB_NAME }}
-          
-          DATABASE_URL=mysql+aiomysql://${{ secrets.PROD_DB_USER }}:${{ secrets.PROD_DB_PASSWORD }}@${{ secrets.PROD_DB_HOST }}/${{ secrets.PROD_DB_NAME }}?charset=utf8mb4
-          
+          MYSQL_PORT=${{ secrets.PROD_DB_PORT }}
+                    
           REDIS_HOST=${{ secrets.PROD_REDIS_HOST }}
           REDIS_PORT=${{ secrets.PROD_REDIS_PORT }}
           REDIS_PASSWORD=${{ secrets.PROD_REDIS_PASSWORD }}

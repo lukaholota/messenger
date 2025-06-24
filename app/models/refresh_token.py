@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from sqlalchemy import Integer, ForeignKey, String, DateTime, func, Boolean
+from sqlalchemy import Integer, ForeignKey, String, DateTime, func, Boolean, \
+    Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -20,7 +21,7 @@ class RefreshToken(Base):
         nullable=False,
     )
     token_identifier: Mapped[str] = mapped_column(
-        String,
+        String(500),
         nullable=False,
         index=True,
         unique=True,

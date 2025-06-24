@@ -12,7 +12,7 @@ from app.schemas.chat_read_status import ChatReadStatusCreate, \
 class ChatReadStatusRepository(
     BaseRepository[ChatReadStatus, ChatReadStatusCreate, ChatReadStatusUpdate]
 ):
-    async def get_unread_messages(
+    async def get_unread_messages_in_chat(
             self, chat_id: int, exclude_user_id: int, last_read_message_id: int
     ):
         query = (
@@ -44,3 +44,5 @@ class ChatReadStatusRepository(
 
     async def create_chat_read_status(self, chat_id: int, user_id: int):
         return ChatReadStatus(chat_id=chat_id, user_id=user_id)
+
+    async def get_all_user_unread_messages(self, user_id, chat_ids):

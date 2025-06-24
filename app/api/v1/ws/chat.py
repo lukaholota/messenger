@@ -105,4 +105,4 @@ async def chat_websocket(
         if chat_service and current_user_id:
             await chat_service.stop(current_user_id)
         else:
-
+            await websocket.close()

@@ -2,6 +2,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.repository.chat_repository import ChatRepository
+from app.db.repository.message_delivery_repository import \
+    MessageDeliveryRepository
 from app.db.repository.message_repository import MessageRepository
 from app.infrastructure.exceptions.exceptions import DatabaseError, MessageValidationError
 from app.models import Message
@@ -15,12 +17,14 @@ class MessageService:
             *,
             message_repository: MessageRepository,
             chat_repository: ChatRepository,
+            message_delivery_repository: MessageDeliveryRepository,
             current_user_id: int,
     ):
         self.db = db
         self.message_repository = message_repository
         self.chat_repository = chat_repository
         self.current_user_id = current_user_id
+        self.message_delivery_repository = message_delivery_repository
 
     async def create_message(self, message_in: MessageCreate) -> Message:
         if not message_in.content:
@@ -55,3 +59,7 @@ class MessageService:
         except Exception as exc:
             await self.db.rollback()
             raise exc
+
+    async def create_message_delivery(self, user_id, message_id):
+        message_delivery = (self.message_delivery_repository.
+                            create_message_delivery(user_id, message_id))

@@ -12,9 +12,9 @@ class Message(Base):
         Integer,
         ForeignKey('chat.chat_id', ondelete='CASCADE')
     )
-    user_id: Mapped[int | None] = mapped_column(
+    user_id: Mapped[int] = mapped_column(
         Integer,
-        ForeignKey('user.user_id', ondelete='SET NULL'),
+        ForeignKey('user.user_id', ondelete='CASCADE'),
         nullable=True
     )
     content: Mapped[str] = mapped_column(Text, nullable=False)
@@ -32,4 +32,9 @@ class Message(Base):
     'User',
     back_populates='messages',
     lazy='raise_on_sql'
+    )
+    delivery = relationship(
+        'MessageDelivery',
+        back_populates='message',
+        lazy='raise_on_sql'
     )

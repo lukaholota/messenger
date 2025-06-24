@@ -4,16 +4,11 @@ from sqlalchemy.ext.asyncio import (AsyncSession, create_async_engine,
                                     async_sessionmaker)
 from app.core.config import settings
 
-
-if not settings.DATABASE_URL:
-    raise ValueError("DATABASE_URL не може бути визначено з налаштувань")
-
 engine = create_async_engine(
     settings.DATABASE_URL,
     echo=settings.SQLALCHEMY_ECHO,
     future=True
 )
-
 
 AsyncSessionFactory = async_sessionmaker(
     bind=engine,

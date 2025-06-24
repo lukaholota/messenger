@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String, Integer, DateTime
+from sqlalchemy import String, Integer, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -29,7 +29,10 @@ class User(Base):
         unique=True
     )
     deleted_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=None
+        DateTime(timezone=True), nullable=True, default=None
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
     )
 
     chats: Mapped[list["Chat"]] = relationship(
