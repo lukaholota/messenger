@@ -4,18 +4,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.repository.chat_read_status_repository import \
     ChatReadStatusRepository
 from app.db.repository.chat_repository import ChatRepository
+from app.db.repository.message_delivery_repository import \
+    MessageDeliveryRepository
 from app.db.repository.user_repository import UserRepository
 from app.infrastructure.cache.json_serializer import JsonSerializer
 from app.infrastructure.cache.redis_cache import RedisCache
 from app.infrastructure.cache.redis_pubsub import RedisPubSub
 from app.infrastructure.message_queue.rabbitmq_client import RabbitMQClient
-from app.models import User, Chat
+from app.models import User, Chat, MessageDelivery
 from app.models.chat_read_status import ChatReadStatus
+from app.services.message_delivery_service import MessageDeliveryService
 from app.services.redis_token_blacklist_service import \
     RedisTokenBlacklistService
 from app.services.ws.chat_read_service import ChatReadService
-from app.services.ws.chat_web_socket_connection_manager import \
-    ChatWebSocketConnectionManager
 from app.services.ws.message_web_socket_handler import MessageWebSocketHandler
 from app.services.ws.redis_chat_subscription_service import \
     RedisChatSubscriptionService
@@ -37,6 +38,13 @@ class WebSocketServiceContainer:
         self.chat_read_status_repository = ChatReadStatusRepository(
             db, ChatReadStatus
         )
+        self.message_delivery_repository = MessageDeliveryRepository(
+            db, MessageDelivery
+        )
+        self.message_delivery_service = MessageDeliveryService(
+            db=self.db,
+            message_delivery_repository=self.message_delivery_repository
+        )
 
     async def get_redis_token_blacklist_service(self):
         return RedisTokenBlacklistService(self.redis)
@@ -47,12 +55,10 @@ class WebSocketServiceContainer:
     async def get_redis_chat_subscription_service(self):
         return RedisChatSubscriptionService(self.pubsub)
 
-    async def get_chat_websocket_connection_manager(self):
-        return ChatWebSocketConnectionManager()
-
     async def get_chat_read_service(self):
         return ChatReadService(
             db=self.db,
             chat_read_status_repository=self.chat_read_status_repository,
-            pubsub=self.pubsub,
+            message_delivery_service=self.message_delivery_service,
+            pubsub=self.pubsub
         )

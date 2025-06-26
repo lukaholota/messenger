@@ -2,12 +2,11 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.repository.chat_repository import ChatRepository
-from app.db.repository.message_delivery_repository import \
-    MessageDeliveryRepository
 from app.db.repository.message_repository import MessageRepository
 from app.infrastructure.exceptions.exceptions import DatabaseError, MessageValidationError
 from app.models import Message
 from app.schemas.message import MessageCreate
+from app.services.message_delivery_service import MessageDeliveryService
 
 
 class MessageService:
@@ -17,28 +16,32 @@ class MessageService:
             *,
             message_repository: MessageRepository,
             chat_repository: ChatRepository,
-            message_delivery_repository: MessageDeliveryRepository,
+            message_delivery_service: MessageDeliveryService,
             current_user_id: int,
     ):
         self.db = db
         self.message_repository = message_repository
         self.chat_repository = chat_repository
         self.current_user_id = current_user_id
-        self.message_delivery_repository = message_delivery_repository
+        self.message_delivery_service = message_delivery_service
 
     async def create_message(self, message_in: MessageCreate) -> Message:
         if not message_in.content:
             raise MessageValidationError('The message is empty')
 
-        existing_chat = await self.chat_repository.get_by_id(
+        existing_chat = await self.chat_repository.get_chat_with_participants(
             message_in.chat_id
         )
         if not existing_chat:
             raise MessageValidationError('Wrong chat')
 
-        if not await self.chat_repository.check_if_user_in_chat(
-            message_in.chat_id, self.current_user_id
-        ):
+        chat_participant_ids = [
+            user.user_id for user in existing_chat.participants
+        ]
+        if not chat_participant_ids:
+            raise MessageValidationError('No participants in chat')
+
+        if self.current_user_id not in chat_participant_ids:
             raise MessageValidationError('User not in chat')
 
         try:
@@ -47,19 +50,31 @@ class MessageService:
                 user_id=self.current_user_id,
                 chat_id=existing_chat.chat_id,
             )
+
+            await self.db.flush()
+
+
+            recipient_ids = [
+                user_id for user_id in chat_participant_ids
+                if user_id != self.current_user_id
+            ]
+
+            await self.message_delivery_service.create_message_deliveries_bulk(
+                user_ids=recipient_ids,
+                message_id=message.message_id,
+                chat_id=message.chat_id,
+            )
+
             await self.db.commit()
             await self.db.refresh(message)
 
             return message
+
         except SQLAlchemyError as db_exc:
             await self.db.rollback()
             raise DatabaseError(
                 "Failed to create message due to database issue"
             ) from db_exc
-        except Exception as exc:
+        except Exception as e:
             await self.db.rollback()
-            raise exc
-
-    async def create_message_delivery(self, user_id, message_id):
-        message_delivery = (self.message_delivery_repository.
-                            create_message_delivery(user_id, message_id))
+            raise e

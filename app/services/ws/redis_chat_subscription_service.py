@@ -19,7 +19,7 @@ class RedisChatSubscriptionService:
             self,
             pubsub: RedisPubSub
     ):
-        self.tasks: List = [asyncio.Task]
+        self.tasks: List[asyncio.Task] = []
         self.pubsubs: Dict[str, PubSub] = {}
         self.pubsub = pubsub
 
@@ -39,13 +39,13 @@ class RedisChatSubscriptionService:
             self.tasks.append(task)
             self.pubsubs[channel] = pubsub
 
-            logger.debug(f'User {user_id} subscribed to channel {channel}')
+            logger.info(f'User {user_id} subscribed to channel {channel}')
 
     async def listen_to_channel(self, pubsub: PubSub, callback: Callable):
         try:
             async for message in pubsub.listen():
                 if message['type'] == 'message':
-                    logger.debug(f'Redis Pubsub got a message {message}')
+                    logger.info(f'Redis Pubsub got a message {message}')
                     data = json.loads(message['data'])
 
                     redis_event = RedisEvent(**data)
@@ -64,5 +64,4 @@ class RedisChatSubscriptionService:
             for task in self.tasks:
                 task.cancel()
         except Exception as e:
-            logger.error(f'error: {e}', exc_info=e)
-            raise WebSocketException('error cleaning up')
+            logger.error(f'error cleaning up: {e}', exc_info=e)

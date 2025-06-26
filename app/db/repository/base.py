@@ -1,4 +1,4 @@
-from typing import Generic, Any, TypeVar, List, Dict, Type
+from typing import Generic, Any, TypeVar, Dict, Type
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import inspect, select
@@ -59,10 +59,6 @@ class BaseRepository(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         for field in db_object_data:
             if field in update_data:
                 setattr(db_object, field, update_data[field])
-
-        self.db.add(db_object)
-        await self.db.commit()
-        await self.db.refresh(db_object)
         return db_object
 
     async def delete(

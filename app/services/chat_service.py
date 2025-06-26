@@ -55,11 +55,15 @@ class ChatService:
                 users_to_add=users_to_add,
                 is_group=chat_in.is_group,
             )
+            await self.db.flush()
 
-            await self.create_chat_user_statuses(
+            await self.create_chat_read_statuses(
                 user_ids=chat_in.participant_ids,
                 chat_id=chat.chat_id
             )
+
+            await self.db.commit()
+            await self.db.refresh(chat, attribute_names=['participants'])
 
             return chat
         except SQLAlchemyError as db_exc:
@@ -136,11 +140,9 @@ class ChatService:
             is_group=is_group,
             users_to_add=users_to_add
         )
-        await self.db.commit()
-        await self.db.refresh(chat, attribute_names=['participants'])
         return chat
 
-    async def create_chat_user_statuses(
+    async def create_chat_read_statuses(
             self,
             user_ids: list[int],
             chat_id: int,
@@ -230,7 +232,7 @@ class ChatService:
                                        difference(current_participant_ids))
 
             if new_participant_ids:
-                await self.create_chat_user_statuses(
+                await self.create_chat_read_statuses(
                     user_ids=new_participant_ids,
                     chat_id=existing_chat.chat_id,
                 )

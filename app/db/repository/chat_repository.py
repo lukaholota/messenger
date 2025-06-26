@@ -59,7 +59,7 @@ class ChatRepository(BaseRepository[ChatModel, ChatCreate, ChatUpdate]):
         return result.scalar_one_or_none()
 
 
-    async def get_chat_with_participants(self, chat_id):
+    async def get_chat_with_participants(self, chat_id) -> ChatModel | None:
         query = select(ChatModel).where(
             ChatModel.chat_id == chat_id
         ).options(

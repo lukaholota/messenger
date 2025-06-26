@@ -24,7 +24,8 @@ class ChatReadStatusRepository(
         result = await self.db.execute(query)
         return result.scalars().all()
 
-    async def get_last_read_message(self, chat_id: int, user_id: int):
+    async def get_last_read_message(self, chat_id: int, user_id: int) \
+            -> ChatReadStatus:
         query = (
             select(ChatReadStatus)
             .where(ChatReadStatus.chat_id == chat_id)
@@ -46,3 +47,4 @@ class ChatReadStatusRepository(
         return ChatReadStatus(chat_id=chat_id, user_id=user_id)
 
     async def get_all_user_unread_messages(self, user_id, chat_ids):
+        pass

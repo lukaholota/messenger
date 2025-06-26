@@ -21,6 +21,7 @@ from app.infrastructure.message_queue.rabbitmq_connection_provider import \
 from app.models import Chat, Message, MessageDelivery
 
 from app.schemas.message import MessageCreate, MessageRead
+from app.services.message_delivery_service import MessageDeliveryService
 from app.services.message_service import MessageService
 
 RABBITMQ_HOST = settings.RABBITMQ_HOST
@@ -137,12 +138,17 @@ async def process_message_logic(raw_message_body: bytes):
                 db, MessageDelivery
             )
 
+            message_delivery_service = MessageDeliveryService(
+                db=db,
+                message_delivery_repository=message_delivery_repository,
+            )
+
             message_service = MessageService(
                 db,
                 current_user_id=user_id,
                 chat_repository=chat_repository,
                 message_repository=message_repository,
-                message_delivery_repository=message_delivery_repository
+                message_delivery_service=message_delivery_service
             )
 
             message_in = MessageCreate(

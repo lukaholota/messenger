@@ -5,8 +5,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.repository.chat_read_status_repository import \
     ChatReadStatusRepository
 from app.infrastructure.cache.redis_pubsub import RedisPubSub
+from app.infrastructure.exceptions.websocket import WebSocketException
 from app.schemas.chat_read_status import ChatReadStatusUpdate, \
     ChatReadStatusRead
+from app.services.message_delivery_service import MessageDeliveryService
 
 
 class ChatReadService:
@@ -14,10 +16,12 @@ class ChatReadService:
             self,
             db: AsyncSession,
             chat_read_status_repository: ChatReadStatusRepository,
+            message_delivery_service: MessageDeliveryService,
             pubsub: RedisPubSub
     ):
         self.db = db
         self.chat_read_status_repository = chat_read_status_repository
+        self.message_delivery_service = message_delivery_service
         self.pubsub = pubsub
 
     async def update_read_status(
@@ -31,12 +35,24 @@ class ChatReadService:
                 chat_id, user_id
             )
         )
+        if not last_read_message:
+            raise WebSocketException('No last read message')
+        if last_read_message.last_read_message_id >= data_in.message_id:
+            raise WebSocketException('already read')
+
         last_read_message = await (self.chat_read_status_repository
         .mark_as_read(
             last_read_message, data_in.message_id
         ))
+        await self.db.flush()
+
+        await self.message_delivery_service.read_messages(
+            chat_id=chat_id,
+            user_id=user_id,
+            last_read_message_id=last_read_message.last_read_message_id
+        )
+
         await self.db.commit()
-        await self.db.refresh(last_read_message)
 
         data_out = ChatReadStatusRead(
             chat_id=chat_id,
@@ -48,6 +64,3 @@ class ChatReadService:
             f'chat:{chat_id}',
             json.dumps({'event': 'read_status_updated', 'data': data_out})
         )
-
-    async def send_unread(self, user_id: int):
-

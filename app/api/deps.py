@@ -26,6 +26,7 @@ from app.models.scheduled_message import ScheduledMessage
 from app.schemas.token import TokenPayload
 from app.services.auth_service import AuthService
 from app.services.chat_service import ChatService
+from app.services.message_delivery_service import MessageDeliveryService
 from app.services.message_service import MessageService
 from app.services.redis_token_blacklist_service import \
     RedisTokenBlacklistService
@@ -227,10 +228,21 @@ async def get_chat_service(
     return chat_service
 
 
+async def get_message_delivery_service(
+        db: AsyncSession = Depends(get_db_session),
+        message_delivery_repository = Depends(get_message_delivery_repository),
+):
+    message_delivery_service = MessageDeliveryService(
+        db=db,
+        message_delivery_repository=message_delivery_repository
+    )
+    return message_delivery_service
+
+
 async def get_message_service(
         db: AsyncSession = Depends(get_db_session),
         message_repository = Depends(get_message_repository),
-        message_delivery_repository = Depends(get_message_delivery_repository),
+        message_delivery_service = Depends(get_message_delivery_service),
         chat_repository: ChatRepository = Depends(get_chat_repository),
         current_user_id: int = Depends(get_current_user_id),
 ) -> MessageService:
@@ -238,7 +250,7 @@ async def get_message_service(
         db,
         message_repository=message_repository,
         chat_repository=chat_repository,
-        message_delivery_repository=message_delivery_repository,
+        message_delivery_service=message_delivery_service,
         current_user_id=current_user_id,
     )
     return message_service

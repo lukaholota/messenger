@@ -1,26 +1,27 @@
 from starlette.websockets import WebSocket
 
 from app.schemas.chat_read_status import ChatReadStatusRead
+from app.schemas.event import ReadStatusUpdatedEvent, MessageSentEvent
 from app.schemas.message import MessageRead
-from app.services.ws.chat_web_socket_connection_manager import \
-    ChatWebSocketConnectionManager
+from app.services.ws.event_sender import \
+    EventSender
 
 
 class RedisEventHandler:
     def __init__(
             self,
             websocket: WebSocket,
-            connection_manager: ChatWebSocketConnectionManager):
+            event_sender: EventSender):
         self.websocket = websocket
-        self.connection_manager = connection_manager
+        self.event_sender = event_sender
 
     async def handle_message_sent(self, message_out: MessageRead):
-        message = message_out.model_dump(mode='json')
-        await self.connection_manager.send_message_to_user(message)
+        event = MessageSentEvent(data=message_out)
+
+        await self.event_sender.send_event(event)
 
     async def handle_read_status_updated(
             self, chat_read_status_out: ChatReadStatusRead
     ):
-        await self.websocket.send_json(
-            chat_read_status_out.model_dump(mode='json')
-        )
+        event = ReadStatusUpdatedEvent(data=chat_read_status_out)
+        await self.event_sender.send_event(event)

@@ -20,6 +20,11 @@ class MessageDelivery(Base):
         ForeignKey('user.user_id', ondelete='CASCADE'),
         nullable=False
     )
+    chat_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey('chat.chat_id', ondelete='CASCADE'),
+        nullable=False
+    )
 
     is_delivered: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False

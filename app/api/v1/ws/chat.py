@@ -1,6 +1,6 @@
 from fastapi import APIRouter, WebSocket
 from pydantic_core import ValidationError
-from starlette.websockets import WebSocketDisconnect
+from starlette.websockets import WebSocketDisconnect, WebSocketState
 
 from app.api.dependencies.auth import get_current_user_id_ws
 from app.db.session import get_lifespan_db
@@ -44,10 +44,9 @@ async def chat_websocket(
 
             chat_service = ChatWebSocketService(
                 websocket=websocket,
-                connection_manager=await container.
-                    get_chat_websocket_connection_manager(),
                 subscription_service=await container.
                     get_redis_chat_subscription_service(),
+                message_delivery_service=container.message_delivery_service,
                 message_handler=await container.
                     get_message_websocket_handler(),
                 chat_repository=container.chat_repository,
@@ -69,6 +68,10 @@ async def chat_websocket(
                     await chat_service.websocket_dispatcher.dispatch(
                         current_user_id, websocket_event
                     )
+                except WebSocketDisconnect:
+                    logger.info(
+                        f"WebSocket disconnected for user {current_user_id}")
+                    break
                 except ValidationError as e:
                     await websocket.send_json({
                         'type': 'error',
@@ -81,7 +84,7 @@ async def chat_websocket(
                     })
                 except Exception as e:
                     logger.error(f'An unexpected exception occurred: {e}',
-                                 exc_info=e
+                                 exc_info=True
                                  )
                     await websocket.send_json({
                         'type': 'error',
@@ -89,20 +92,15 @@ async def chat_websocket(
                                    f'occurred processing your message'
                     })
     except WebSocketException as e:
-        await websocket.send_json({
-            'type': 'error',
-            'message': e.message
-        })
+        logger.warning(f"WebSocket connection failed: {e.message}")
     except WebSocketDisconnect:
         logger.info(f"WebSocket disconnected for user {current_user_id}")
+        return
     except Exception as e:
-        await websocket.send_json({
-            'type': 'error',
-            'message': f'Critical exception occurred: {e}'
-        })
         logger.error(f'Critical exception occurred: {e}')
     finally:
-        if chat_service and current_user_id:
-            await chat_service.stop(current_user_id)
-        else:
+        logger.info(f"Cleaning up resources for user {current_user_id}.")
+        if chat_service:
+            await chat_service.stop()
+        if not websocket.client_state == WebSocketState.DISCONNECTED:
             await websocket.close()
