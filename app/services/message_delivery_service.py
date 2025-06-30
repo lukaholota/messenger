@@ -56,3 +56,13 @@ class MessageDeliveryService:
                 unread_message.read_at = datetime.now(timezone.utc)
 
         await self.db.commit()
+
+    async def get_unread_counts_map(self, user_id) -> dict[int, int]:
+        unread_counts = await (
+            self.message_delivery_repository
+            .get_unread_counts(user_id=user_id)
+        )
+
+        return {
+            counts.chat_id: counts.unread_count for counts in unread_counts
+        }

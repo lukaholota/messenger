@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 
 from app.db.repository.base import BaseRepository
@@ -57,6 +57,22 @@ class MessageDeliveryRepository(
                 MessageDelivery.chat_id == chat_id,
                 MessageDelivery.user_id == user_id,
             )
+        )
+        result = await self.db.execute(query)
+        return result.scalars().all()
+
+    async def get_unread_counts(
+            self, user_id: int
+    ):
+        query = (
+            select(
+                MessageDelivery.chat_id,
+                func.count().label('unread_count')
+            )
+            .where(
+                MessageDelivery.is_read == False,
+                MessageDelivery.user_id == user_id,
+            ).group_by(MessageDelivery.chat_id)
         )
         result = await self.db.execute(query)
         return result.scalars().all()

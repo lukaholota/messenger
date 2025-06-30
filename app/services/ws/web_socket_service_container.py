@@ -13,6 +13,7 @@ from app.infrastructure.cache.redis_pubsub import RedisPubSub
 from app.infrastructure.message_queue.rabbitmq_client import RabbitMQClient
 from app.models import User, Chat, MessageDelivery
 from app.models.chat_read_status import ChatReadStatus
+from app.services.chat_service import ChatService
 from app.services.message_delivery_service import MessageDeliveryService
 from app.services.redis_token_blacklist_service import \
     RedisTokenBlacklistService
@@ -27,6 +28,7 @@ class WebSocketServiceContainer:
             self,
             db: AsyncSession,
             redis_client: Redis,
+            current_user_id: int
     ):
         self.db = db
         self.redis_client = redis_client
@@ -44,6 +46,11 @@ class WebSocketServiceContainer:
         self.message_delivery_service = MessageDeliveryService(
             db=self.db,
             message_delivery_repository=self.message_delivery_repository
+        )
+        self.chat_service = ChatService(
+            chat_repository=self.chat_repository,
+            user_repository=self.user_repository,
+            chat_read_status_repository: ChatReadStatusRepository
         )
 
     async def get_redis_token_blacklist_service(self):

@@ -47,3 +47,10 @@ class ChatUpdateRead(ChatBase):
 class ChatAddParticipants(BaseModel):
     chat_id: int
     participant_ids: list[int]
+
+
+class ChatOverview(BaseModel):
+    chat_id: int
+    name: str
+    last_message: MessageRead
+    unread_count: int

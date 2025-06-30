@@ -1,3 +1,5 @@
+from sqlalchemy import select, func
+
 from .base import BaseRepository
 from app.models.message import Message as MessageModel
 from app.schemas.message import MessageCreate, MessageUpdate
@@ -19,3 +21,23 @@ class MessageRepository(
         )
         self.db.add(new_message)
         return new_message
+
+    async def get_last_messages_from_every_chat(self, chat_ids):
+        subquery = (
+            select(
+                MessageModel.chat_id,
+                func.max(MessageModel.message_id).label('last_message_id')
+            ).where(MessageModel.chat_id.in_(chat_ids))
+            .group_by(MessageModel.chat_id)
+            .subquery()
+        )
+
+        query = (
+            select(MessageModel)
+            .join(
+                subquery, MessageModel.message_id == subquery.c.last_message_id
+            )
+        )
+        result = await self.db.execute(query)
+
+        return result.scalars().all()

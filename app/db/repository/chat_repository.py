@@ -83,8 +83,16 @@ class ChatRepository(BaseRepository[ChatModel, ChatCreate, ChatUpdate]):
         return delete_stmt
 
     async def get_user_chat_ids(self, user_id):
-        query = select(ChatParticipant.chat_id).join(UserModel).where(
+        query = select(ChatParticipant.chat_id).where(
             ChatParticipant.user_id == user_id
         )
+        result = await self.db.execute(query)
+        return result.scalars().all()
+
+    async def get_chats_for_user(self, user_id):
+        query = select(ChatModel).join(ChatParticipant).where(
+            ChatParticipant.user_id == user_id
+        )
+
         result = await self.db.execute(query)
         return result.scalars().all()

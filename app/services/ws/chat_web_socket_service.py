@@ -1,10 +1,13 @@
+from typing import List
+
 from starlette.websockets import WebSocket
 
 from app.db.repository.chat_repository import ChatRepository
 
 from logging import getLogger
 
-from app.models import Message
+from app.models import Message, Chat
+from app.schemas.chat import ChatOverview
 from app.schemas.chat_read_status import ChatReadStatusRead, \
     ChatReadStatusUpdate
 from app.schemas.event import UndeliveredMessagesSentEvent
@@ -57,6 +60,9 @@ class ChatWebSocketService:
 
     async def start(self, user_id: int):
         await self.register_handlers()
+
+        chats = await chat_service
+
         await self.handle_reconnect(user_id)
 
         chat_ids = await self.chat_repository.get_user_chat_ids(user_id)
@@ -89,7 +95,7 @@ class ChatWebSocketService:
             handler=self.websocket_event_handler.handle_read_message
         )
 
-    async def handle_reconnect(self, user_id: int):
+    async def handle_reconnect(self, user_id: int, chats: list[Chat]):
         undelivered_messages = await (
             self.message_delivery_service
             .mark_messages_delivered(user_id)
@@ -105,6 +111,12 @@ class ChatWebSocketService:
         event = UndeliveredMessagesSentEvent(data=message_schemas)
 
         await self.event_sender.send_event(event)
+
+    async def prepare_chat_list_on_reconnect(
+            self, user_id: int, chats: list[Chat]
+    ) -> List[ChatOverview]:
+
+
 
     async def stop(self):
         await self.subscription_service.cleanup()
