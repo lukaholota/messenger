@@ -78,14 +78,3 @@ class MessageService:
         except Exception as e:
             await self.db.rollback()
             raise e
-
-    async def get_last_messages_from_every_chat_map(
-            self, chat_ids: list[int]) -> dict[int, Message]:
-        messages = await (
-            self.message_repository.get_last_messages_from_every_chat(
-            chat_ids=chat_ids,
-        ))
-
-        return {
-            message.chat_id: message for message in messages
-        }

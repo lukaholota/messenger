@@ -6,7 +6,7 @@ from app.api.deps import get_chat_service
 
 from app.schemas.chat import ChatRead, ChatCreate, ChatWithDetails, ChatUpdate, \
     ChatUpdateRead, ChatAddParticipants
-from app.services.chat_service import ChatService
+from app.services.chat.chat_service import ChatService
 
 router = APIRouter()
 

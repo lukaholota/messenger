@@ -37,21 +37,19 @@ async def chat_websocket(
             current_user_id = await get_current_user_id_ws(
                 token=access_token,
                 user_repository=container.user_repository,
-                redis_token_blacklist_service=await container.
-                    get_redis_token_blacklist_service(),
+                redis_token_blacklist_service=container.
+                    redis_token_blacklist_service,
                 redis=container.redis,
             )
 
             chat_service = ChatWebSocketService(
                 websocket=websocket,
-                subscription_service=await container.
-                    get_redis_chat_subscription_service(),
+                subscription_service=container.redis_chat_subscription_service,
                 message_delivery_service=container.message_delivery_service,
-                message_handler=await container.
-                    get_message_websocket_handler(),
-                chat_repository=container.chat_repository,
-                chat_read_service=await container.
-                    get_chat_read_service(),
+                chat_query_service=container.chat_query_service,
+                chat_overview_service=container.chat_overview_service,
+                message_handler=container.message_websocket_handler,
+                chat_read_service=container.chat_read_service,
             )
 
             await chat_service.start(current_user_id)

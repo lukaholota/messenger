@@ -2,16 +2,17 @@ from typing import List
 
 from starlette.websockets import WebSocket
 
-from app.db.repository.chat_repository import ChatRepository
-
 from logging import getLogger
 
 from app.models import Message, Chat
 from app.schemas.chat import ChatOverview
 from app.schemas.chat_read_status import ChatReadStatusRead, \
     ChatReadStatusUpdate
-from app.schemas.event import UndeliveredMessagesSentEvent
+from app.schemas.event import UndeliveredMessagesSentEvent, \
+    ChatOverviewListSentEvent
 from app.schemas.message import MessageRead, MessageCreate
+from app.services.chat.chat_query_service import ChatQueryService
+from app.services.chat_overview_service import ChatOverviewService
 from app.services.message_delivery_service import MessageDeliveryService
 from app.services.ws.chat_read_service import ChatReadService
 from app.services.ws.dispatchers.websocket_event_dispatcher import \
@@ -36,17 +37,18 @@ class ChatWebSocketService:
             websocket: WebSocket,
             subscription_service: RedisChatSubscriptionService,
             chat_read_service: ChatReadService,
+            chat_query_service: ChatQueryService,
+            chat_overview_service: ChatOverviewService,
             message_delivery_service: MessageDeliveryService,
             message_handler: MessageWebSocketHandler,
-            chat_repository: ChatRepository,
-
     ):
         self.websocket = websocket
         self.event_sender = EventSender(websocket)
         self.subscription_service = subscription_service
         self.message_handler = message_handler
-        self.chat_repository = chat_repository
         self.message_delivery_service = message_delivery_service
+        self.chat_query_service = chat_query_service
+        self.chat_overview_service = chat_overview_service
         self.redis_dispatcher = ChatRedisEventDispatcher()
         self.websocket_dispatcher = ChatWebSocketEventDispatcher()
         self.websocket_event_handler = WebSocketEventHandler(
@@ -61,11 +63,11 @@ class ChatWebSocketService:
     async def start(self, user_id: int):
         await self.register_handlers()
 
-        chats = await chat_service
+        chats = await self.chat_query_service.get_chats_for_user(user_id)
 
-        await self.handle_reconnect(user_id)
+        await self.handle_reconnect(user_id, chats)
 
-        chat_ids = await self.chat_repository.get_user_chat_ids(user_id)
+        chat_ids = [chat.chat_id for chat in chats]
         await self.subscription_service.subscribe_to_every_chat(
             user_id,
             chat_ids,
@@ -102,6 +104,11 @@ class ChatWebSocketService:
         )
         await self.send_undelivered_messages(undelivered_messages)
 
+        chat_overview_list = await (
+            self.prepare_chat_overview_list_on_reconnect(user_id, chats)
+        )
+        await self.send_chat_overview_list(chat_overview_list)
+
     async def send_undelivered_messages(self, messages: list[Message]):
         message_schemas = [
             MessageRead.model_validate(message)
@@ -112,11 +119,19 @@ class ChatWebSocketService:
 
         await self.event_sender.send_event(event)
 
-    async def prepare_chat_list_on_reconnect(
+    async def send_chat_overview_list(
+            self, chat_overview_list: list[ChatOverview]
+    ):
+        event = ChatOverviewListSentEvent(data=chat_overview_list)
+
+        await self.event_sender.send_event(event)
+
+    async def prepare_chat_overview_list_on_reconnect(
             self, user_id: int, chats: list[Chat]
     ) -> List[ChatOverview]:
-
-
+        return await (
+            self.chat_overview_service.get_chat_overview_list(user_id, chats)
+        )
 
     async def stop(self):
         await self.subscription_service.cleanup()

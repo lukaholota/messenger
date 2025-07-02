@@ -178,14 +178,6 @@ class ChatService:
         await self.redis.set(redis_key, existing_chat)
         return existing_chat
 
-    async def get_user_chat_ids(self, user_id: int) -> list[int]:
-        chats = await self.chat_repository.get_user_chat_ids(user_id)
-
-        if not chats:
-            return []
-
-        return chats
-
     async def update_chat(
             self,
             chat_in: ChatUpdate,

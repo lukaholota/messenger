@@ -25,9 +25,9 @@ from app.models.chat_read_status import ChatReadStatus
 from app.models.scheduled_message import ScheduledMessage
 from app.schemas.token import TokenPayload
 from app.services.auth_service import AuthService
-from app.services.chat_service import ChatService
+from app.services.chat.chat_service import ChatService
 from app.services.message_delivery_service import MessageDeliveryService
-from app.services.message_service import MessageService
+from app.services.message.message_service import MessageService
 from app.services.redis_token_blacklist_service import \
     RedisTokenBlacklistService
 from app.services.scheduled_message_service import ScheduledMessageService

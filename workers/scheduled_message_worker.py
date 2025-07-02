@@ -14,13 +14,12 @@ from app.db.repository.message_delivery_repository import \
 from app.db.repository.message_repository import MessageRepository
 from app.db.repository.scheduled_message_repository import \
     ScheduledMessageRepository
-from app.db.repository.user_repository import UserRepository
 from app.db.session import AsyncSessionFactory
-from app.models import User, Chat, Message, MessageDelivery
+from app.models import Chat, Message, MessageDelivery
 from app.models.scheduled_message import ScheduledMessage, \
     ScheduledMessageStatus
 from app.schemas.message import MessageCreate
-from app.services.message_service import MessageService
+from app.services.message.message_service import MessageService
 
 RABBITMQ_HOST = settings.RABBITMQ_HOST
 RABBITMQ_PORT = settings.RABBITMQ_PORT

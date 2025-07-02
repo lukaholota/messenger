@@ -17,6 +17,11 @@ class MessageRead(MessageBase):
     class Config:
         from_attributes = True
 
+class MessageInChatOverview(MessageBase):
+    sent_at: datetime
+    content: str
+    display_name: str
+
 
 class MessageCreate(MessageBase):
     chat_id: int

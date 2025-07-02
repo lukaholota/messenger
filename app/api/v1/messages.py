@@ -6,7 +6,7 @@ from app.api.deps import get_message_service, get_redis
 from app.infrastructure.cache.redis_cache import RedisCache
 
 from app.schemas.message import MessageRead, MessageCreate
-from app.services.message_service import MessageService
+from app.services.message.message_service import MessageService
 
 router = APIRouter()
 

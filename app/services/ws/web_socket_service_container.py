@@ -6,14 +6,17 @@ from app.db.repository.chat_read_status_repository import \
 from app.db.repository.chat_repository import ChatRepository
 from app.db.repository.message_delivery_repository import \
     MessageDeliveryRepository
+from app.db.repository.message_repository import MessageRepository
 from app.db.repository.user_repository import UserRepository
 from app.infrastructure.cache.json_serializer import JsonSerializer
 from app.infrastructure.cache.redis_cache import RedisCache
 from app.infrastructure.cache.redis_pubsub import RedisPubSub
 from app.infrastructure.message_queue.rabbitmq_client import RabbitMQClient
-from app.models import User, Chat, MessageDelivery
+from app.models import User, Chat, MessageDelivery, Message
 from app.models.chat_read_status import ChatReadStatus
-from app.services.chat_service import ChatService
+from app.services.chat.chat_query_service import ChatQueryService
+from app.services.chat_overview_service import ChatOverviewService
+from app.services.message.message_query_service import MessageQueryService
 from app.services.message_delivery_service import MessageDeliveryService
 from app.services.redis_token_blacklist_service import \
     RedisTokenBlacklistService
@@ -24,48 +27,47 @@ from app.services.ws.redis_chat_subscription_service import \
 
 
 class WebSocketServiceContainer:
-    def __init__(
-            self,
-            db: AsyncSession,
-            redis_client: Redis,
-            current_user_id: int
-    ):
+    def __init__(self, db: AsyncSession, redis_client: Redis):
         self.db = db
         self.redis_client = redis_client
         self.redis = RedisCache(redis_client, JsonSerializer())
         self.pubsub = RedisPubSub(redis_client)
         self.mq_client = RabbitMQClient()
+
         self.user_repository = UserRepository(db, User)
         self.chat_repository = ChatRepository(db, Chat)
+        self.message_repository = MessageRepository(db, Message)
         self.chat_read_status_repository = ChatReadStatusRepository(
             db, ChatReadStatus
         )
         self.message_delivery_repository = MessageDeliveryRepository(
             db, MessageDelivery
         )
+
+        self.redis_token_blacklist_service = RedisTokenBlacklistService(
+            self.redis
+        )
         self.message_delivery_service = MessageDeliveryService(
-            db=self.db,
-            message_delivery_repository=self.message_delivery_repository
+            db, self.message_delivery_repository
         )
-        self.chat_service = ChatService(
-            chat_repository=self.chat_repository,
-            user_repository=self.user_repository,
-            chat_read_status_repository: ChatReadStatusRepository
+        self.chat_query_service = ChatQueryService(self.chat_repository)
+        self.message_query_service = MessageQueryService(
+            self.message_repository
         )
-
-    async def get_redis_token_blacklist_service(self):
-        return RedisTokenBlacklistService(self.redis)
-
-    async def get_message_websocket_handler(self):
-        return MessageWebSocketHandler(self.mq_client)
-
-    async def get_redis_chat_subscription_service(self):
-        return RedisChatSubscriptionService(self.pubsub)
-
-    async def get_chat_read_service(self):
-        return ChatReadService(
+        self.chat_overview_service = ChatOverviewService(
+            self.message_delivery_service,
+            self.message_query_service
+        )
+        self.message_websocket_handler = MessageWebSocketHandler(
+            self.mq_client
+        )
+        self.redis_chat_subscription_service = RedisChatSubscriptionService(
+            self.pubsub
+        )
+        self.chat_read_service = ChatReadService(
             db=self.db,
             chat_read_status_repository=self.chat_read_status_repository,
             message_delivery_service=self.message_delivery_service,
             pubsub=self.pubsub
         )
+

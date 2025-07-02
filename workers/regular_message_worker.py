@@ -22,7 +22,7 @@ from app.models import Chat, Message, MessageDelivery
 
 from app.schemas.message import MessageCreate, MessageRead
 from app.services.message_delivery_service import MessageDeliveryService
-from app.services.message_service import MessageService
+from app.services.message.message_service import MessageService
 
 RABBITMQ_HOST = settings.RABBITMQ_HOST
 RABBITMQ_PORT = settings.RABBITMQ_PORT
