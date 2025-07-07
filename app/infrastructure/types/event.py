@@ -3,6 +3,7 @@ from enum import Enum
 class ClientToServerEvent(str, Enum):
     NEW_MESSAGE = 'new_message'
     READ_MESSAGE = 'read_message'
+    GET__CHAT = 'get_chat'
 
 
 class ServerToClientEvent(str, Enum):
@@ -10,3 +11,4 @@ class ServerToClientEvent(str, Enum):
     READ_STATUS_UPDATED = 'read_status_updated'
     UNDELIVERED_MESSAGES_SENT = 'undelivered_messages_sent'
     CHAT_OVERVIEW_LIST_SENT = 'chat_overview_list_sent'
+    CHAT_SENT = 'chat_sent'

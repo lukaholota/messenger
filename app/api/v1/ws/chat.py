@@ -19,38 +19,48 @@ router = APIRouter()
 async def chat_websocket(
         websocket: WebSocket,
 ):
-    current_user_id = None
-    chat_service = None
-    try:
-        await websocket.accept()
+    await websocket.accept()
 
-        async with (
-            get_lifespan_db() as db,
-            get_lifespan_redis_client() as redis_client
-        ):
-            container = WebSocketServiceContainer(db, redis_client)
+    async with (
+        get_lifespan_db() as db,
+        get_lifespan_redis_client() as redis_client
+    ):
+        current_user_id = None
+        chat_service = None
+        try:
+                container = WebSocketServiceContainer(db, redis_client)
 
-            access_token = websocket.query_params.get('access_token')
-            if not access_token:
-                raise WebSocketException('no access token provided')
+                access_token = websocket.query_params.get('access_token')
+                if not access_token:
+                    raise WebSocketException('no access token provided')
 
-            current_user_id = await get_current_user_id_ws(
-                token=access_token,
-                user_repository=container.user_repository,
-                redis_token_blacklist_service=container.
-                    redis_token_blacklist_service,
-                redis=container.redis,
-            )
+                current_user_id = await get_current_user_id_ws(
+                    token=access_token,
+                    user_query_service=container.user_query_service,
+                    redis_token_blacklist_service=container.
+                        redis_token_blacklist_service,
+                    redis=container.redis,
+                )
 
-            chat_service = ChatWebSocketService(
-                websocket=websocket,
-                subscription_service=container.redis_chat_subscription_service,
-                message_delivery_service=container.message_delivery_service,
-                chat_query_service=container.chat_query_service,
-                chat_overview_service=container.chat_overview_service,
-                message_handler=container.message_websocket_handler,
-                chat_read_service=container.chat_read_service,
-            )
+                chat_service = ChatWebSocketService(
+                    websocket=websocket,
+                    subscription_service=container
+                        .redis_chat_subscription_service,
+                    message_delivery_service=container
+                        .message_delivery_service,
+                    chat_query_service=container.chat_query_service,
+                    chat_overview_service=container.chat_overview_service,
+                    message_handler=container.message_websocket_handler,
+                    chat_read_service=container.chat_read_service,
+                )
+        except WebSocketException as e:
+            logger.warning(f"WebSocket connection failed: {e.message}")
+            await websocket.close(code=1008, reason=e.message)
+            return
+
+        try:
+            if not current_user_id or not chat_service:
+                raise WebSocketException('WebSocket initialization failed')
 
             await chat_service.start(current_user_id)
 
@@ -71,11 +81,13 @@ async def chat_websocket(
                         f"WebSocket disconnected for user {current_user_id}")
                     break
                 except ValidationError as e:
+                    logger.exception(f'validation error, {e}', exc_info=True)
                     await websocket.send_json({
                         'type': 'error',
                         'message': f'Invalid message format: {e}'
                     })
                 except WebSocketException as e:
+                    logger.exception(f'logic exception!, {e}', exc_info=True)
                     await websocket.send_json({
                         'type': 'error',
                         'message': e.message
@@ -89,16 +101,17 @@ async def chat_websocket(
                         'message': f'An unexpected error '
                                    f'occurred processing your message'
                     })
-    except WebSocketException as e:
-        logger.warning(f"WebSocket connection failed: {e.message}")
-    except WebSocketDisconnect:
-        logger.info(f"WebSocket disconnected for user {current_user_id}")
-        return
-    except Exception as e:
-        logger.error(f'Critical exception occurred: {e}')
-    finally:
-        logger.info(f"Cleaning up resources for user {current_user_id}.")
-        if chat_service:
-            await chat_service.stop()
-        if not websocket.client_state == WebSocketState.DISCONNECTED:
-            await websocket.close()
+        except WebSocketDisconnect:
+            logger.info(f"WebSocket disconnected for user {current_user_id}")
+        except Exception as e:
+            logger.error(f'Critical exception occurred: {e}', exc_info=True)
+            await websocket.send_json({
+                'type': 'error',
+                'message': 'Internal server error'
+            })
+        finally:
+            logger.info(f"Cleaning up resources for user {current_user_id}.")
+            if chat_service:
+                await chat_service.stop()
+            if not websocket.client_state == WebSocketState.DISCONNECTED:
+                await websocket.close()

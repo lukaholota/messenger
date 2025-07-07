@@ -37,4 +37,5 @@ async def get_lifespan_redis_client():
     try:
         yield redis
     finally:
-        pass
+        if redis:
+            await redis.close()

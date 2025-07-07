@@ -2,6 +2,7 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 
 from app.db.repository.base import BaseRepository
+from app.models import Chat
 from app.models.message_delivery import MessageDelivery
 from app.schemas.message_delivery import MessageDeliveryCreate, \
     MessageDeliveryUpdate
@@ -61,18 +62,19 @@ class MessageDeliveryRepository(
         result = await self.db.execute(query)
         return result.scalars().all()
 
-    async def get_unread_counts(
-            self, user_id: int
-    ):
+    async def get_unread_counts(self, user_id: int, chat_ids: list[int]):
         query = (
             select(
-                MessageDelivery.chat_id,
-                func.count().label('unread_count')
-            )
-            .where(
-                MessageDelivery.is_read == False,
-                MessageDelivery.user_id == user_id,
-            ).group_by(MessageDelivery.chat_id)
+                Chat.chat_id,
+                func.count(
+                    func.nullif(MessageDelivery.is_read, True)
+                ).label('unread_count')
+            ).outerjoin(
+                MessageDelivery,
+                onclause=(MessageDelivery.chat_id == Chat.chat_id) &
+                         (MessageDelivery.user_id == user_id)
+            ).where(Chat.chat_id.in_(chat_ids))
+            .group_by(Chat.chat_id)
         )
         result = await self.db.execute(query)
-        return result.scalars().all()
+        return result.all()

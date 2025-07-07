@@ -41,4 +41,4 @@ class MessageRepository(
         )
         result = await self.db.execute(query)
 
-        return result.scalars().all()
+        return result.all()

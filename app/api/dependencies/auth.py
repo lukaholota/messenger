@@ -1,7 +1,6 @@
 from jose import ExpiredSignatureError
 
 from app.core.security import decode_jwt_token
-from app.db.repository.user_repository import UserRepository
 from app.infrastructure.exceptions.exceptions import InvalidAccessTokenException
 from app.infrastructure.cache.redis_cache import RedisCache
 from app.infrastructure.exceptions.websocket import WebSocketException
@@ -11,11 +10,13 @@ from app.services.redis_token_blacklist_service import \
 
 from logging import getLogger
 
+from app.services.user.user_query_service import UserQueryService
+
 logger = getLogger(__name__)
 
 async def get_current_user_id_ws(
         token: str,
-        user_repository: UserRepository,
+        user_query_service: UserQueryService,
         redis_token_blacklist_service: RedisTokenBlacklistService,
         redis: RedisCache,
 ) -> int:
@@ -29,7 +30,7 @@ async def get_current_user_id_ws(
     if cached_user_id:
         return int(cached_user_id)
 
-    user = await user_repository.get_by_id(token_payload.user_id)
+    user = await user_query_service.get_user_by_id(int(token_payload.user_id))
     if not user:
         raise WebSocketException('user not found')
     if user.deleted_at:

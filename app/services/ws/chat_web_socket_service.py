@@ -4,8 +4,8 @@ from starlette.websockets import WebSocket
 
 from logging import getLogger
 
-from app.models import Message, Chat
-from app.schemas.chat import ChatOverview
+from app.models import Message
+from app.schemas.chat import ChatOverview, ChatWithName
 from app.schemas.chat_read_status import ChatReadStatusRead, \
     ChatReadStatusUpdate
 from app.schemas.event import UndeliveredMessagesSentEvent, \
@@ -63,11 +63,13 @@ class ChatWebSocketService:
     async def start(self, user_id: int):
         await self.register_handlers()
 
-        chats = await self.chat_query_service.get_chats_for_user(user_id)
+        chats_with_names = await self.chat_query_service.get_chats_for_user(
+            user_id
+        )
+        chat_ids = [chat.chat.chat_id for chat in chats_with_names]
 
-        await self.handle_reconnect(user_id, chats)
+        await self.handle_reconnect(user_id, chats_with_names, chat_ids)
 
-        chat_ids = [chat.chat_id for chat in chats]
         await self.subscription_service.subscribe_to_every_chat(
             user_id,
             chat_ids,
@@ -97,7 +99,9 @@ class ChatWebSocketService:
             handler=self.websocket_event_handler.handle_read_message
         )
 
-    async def handle_reconnect(self, user_id: int, chats: list[Chat]):
+    async def handle_reconnect(
+            self, user_id: int, chats: list[ChatWithName], chat_ids: list[int]
+    ):
         undelivered_messages = await (
             self.message_delivery_service
             .mark_messages_delivered(user_id)
@@ -105,8 +109,13 @@ class ChatWebSocketService:
         await self.send_undelivered_messages(undelivered_messages)
 
         chat_overview_list = await (
-            self.prepare_chat_overview_list_on_reconnect(user_id, chats)
+            self.prepare_chat_overview_list_on_reconnect(
+                user_id, chats, chat_ids
+            )
         )
+
+        print('chat_overview_list: ', chat_overview_list)
+
         await self.send_chat_overview_list(chat_overview_list)
 
     async def send_undelivered_messages(self, messages: list[Message]):
@@ -127,10 +136,12 @@ class ChatWebSocketService:
         await self.event_sender.send_event(event)
 
     async def prepare_chat_overview_list_on_reconnect(
-            self, user_id: int, chats: list[Chat]
+            self, user_id: int, chats: list[ChatWithName], chat_ids: list[int]
     ) -> List[ChatOverview]:
         return await (
-            self.chat_overview_service.get_chat_overview_list(user_id, chats)
+            self.chat_overview_service.get_chat_overview_list(
+                user_id, chats, chat_ids
+            )
         )
 
     async def stop(self):

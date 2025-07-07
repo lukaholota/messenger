@@ -35,5 +35,8 @@ async def get_lifespan_db() -> AsyncSession:
     db = await anext(session_generator)
     try:
         yield db
+    except:
+        await db.rollback()
+        raise
     finally:
         await session_generator.aclose()

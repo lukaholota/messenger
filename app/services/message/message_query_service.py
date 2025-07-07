@@ -7,11 +7,12 @@ class MessageQueryService:
 
     async def get_last_messages_from_every_chat_map(
             self, chat_ids: list[int]):
-        messages = await (
+        raw_results = await (
             self.message_repository.get_last_messages_from_every_chat(
             chat_ids=chat_ids,
         ))
 
         return {
-            message.chat_id: message for message in messages
+            message.chat_id: {'message': message, 'display_name': display_name}
+            for message, display_name in raw_results
         }

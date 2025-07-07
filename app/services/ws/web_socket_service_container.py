@@ -20,6 +20,7 @@ from app.services.message.message_query_service import MessageQueryService
 from app.services.message_delivery_service import MessageDeliveryService
 from app.services.redis_token_blacklist_service import \
     RedisTokenBlacklistService
+from app.services.user.user_query_service import UserQueryService
 from app.services.ws.chat_read_service import ChatReadService
 from app.services.ws.message_web_socket_handler import MessageWebSocketHandler
 from app.services.ws.redis_chat_subscription_service import \
@@ -54,6 +55,7 @@ class WebSocketServiceContainer:
         self.message_query_service = MessageQueryService(
             self.message_repository
         )
+        self.user_query_service = UserQueryService(self.user_repository)
         self.chat_overview_service = ChatOverviewService(
             self.message_delivery_service,
             self.message_query_service

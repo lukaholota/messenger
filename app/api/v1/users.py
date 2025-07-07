@@ -5,7 +5,7 @@ from app.api.deps import get_user_service, \
     get_current_user_db_bound
 from app.models import User
 from app.schemas.user import UserUpdate, UserUpdateRead, UserDelete
-from app.services.user_service import UserService
+from app.services.user.user_service import UserService
 
 router = APIRouter()
 

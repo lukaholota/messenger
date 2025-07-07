@@ -31,7 +31,7 @@ from app.services.message.message_service import MessageService
 from app.services.redis_token_blacklist_service import \
     RedisTokenBlacklistService
 from app.services.scheduled_message_service import ScheduledMessageService
-from app.services.user_service import UserService
+from app.services.user.user_service import UserService
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/api/v1/token')
 

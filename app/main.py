@@ -6,6 +6,7 @@ from fastapi import FastAPI, Request
 from fastapi_limiter import FastAPILimiter
 from jose import JWTError
 from starlette.responses import JSONResponse
+from starlette.staticfiles import StaticFiles
 from starlette.status import HTTP_503_SERVICE_UNAVAILABLE, HTTP_409_CONFLICT, \
     HTTP_401_UNAUTHORIZED, HTTP_400_BAD_REQUEST, \
     HTTP_500_INTERNAL_SERVER_ERROR, HTTP_403_FORBIDDEN
@@ -64,6 +65,11 @@ app = FastAPI(
     description="API for the Messenger application",
     version="1.0.0",
     lifespan=lifespan,
+)
+
+app.mount(
+    "/", StaticFiles(directory="messenger-frontend/dist", html=True),
+    name="frontend"
 )
 
 # app.add_middleware(AuthMiddleware)

@@ -89,10 +89,12 @@ class ChatRepository(BaseRepository[ChatModel, ChatCreate, ChatUpdate]):
         result = await self.db.execute(query)
         return result.scalars().all()
 
-    async def get_chats_for_user(self, user_id):
-        query = select(ChatModel).join(ChatParticipant).where(
-            ChatParticipant.user_id == user_id
+    async def get_chats_with_names_for_user_raw(self, user_id):
+        query = (
+            select(ChatModel, ChatParticipant.chat_name)
+            .join(ChatParticipant)
+            .where(ChatParticipant.user_id == user_id)
         )
 
         result = await self.db.execute(query)
-        return result.scalars().all()
+        return result.all()

@@ -57,12 +57,15 @@ class MessageDeliveryService:
 
         await self.db.commit()
 
-    async def get_unread_counts_map(self, user_id) -> dict[int, int]:
-        unread_counts = await (
+    async def get_unread_counts_map(
+            self, user_id: int, chat_ids: list[int]
+    ) -> dict[int, int]:
+        raw_results = await (
             self.message_delivery_repository
-            .get_unread_counts(user_id=user_id)
+            .get_unread_counts(user_id, chat_ids)
         )
 
         return {
-            counts.chat_id: counts.unread_count for counts in unread_counts
+            raw_result.chat_id: raw_result.unread_count
+            for raw_result in raw_results
         }

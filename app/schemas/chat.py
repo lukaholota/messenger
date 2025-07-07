@@ -1,11 +1,14 @@
+from dataclasses import dataclass
+
 from pydantic import BaseModel
 
-from app.schemas.message import MessageRead
+from app.models import Chat
+from app.schemas.message import MessageRead, MessageInChatOverview
 from app.schemas.user import UserRead
 
 
 class ChatBase(BaseModel):
-    name: str | None = None
+    chat_name: str | None = None
     is_group: bool | None = None
 
 
@@ -21,7 +24,7 @@ class ChatUpdate(ChatBase):
 
 class ChatRead(ChatBase):
     chat_id: int
-    name: str
+    chat_name: str
     is_group: bool
     participants: list[UserRead]
 
@@ -30,7 +33,7 @@ class ChatRead(ChatBase):
 
 
 class ChatWithDetails(ChatBase):
-    name: str
+    chat_name: str
     is_group: bool
     participants: list[UserRead]
     messages: list[MessageRead]
@@ -41,7 +44,7 @@ class ChatWithDetails(ChatBase):
 
 class ChatUpdateRead(ChatBase):
     chat_id: int
-    name: str
+    chat_name: str
 
 
 class ChatAddParticipants(BaseModel):
@@ -51,6 +54,15 @@ class ChatAddParticipants(BaseModel):
 
 class ChatOverview(BaseModel):
     chat_id: int
-    name: str
-    last_message: MessageRead
+    chat_name: str
+    last_message: MessageInChatOverview
     unread_count: int
+
+
+class ChatWithName(BaseModel):
+    chat: Chat
+    chat_name: str
+
+    class Config:
+        from_attributes = True
+        arbitrary_types_allowed = True

@@ -1,7 +1,7 @@
+from datetime import datetime
 from typing import List
 
-from app.models import Chat
-from app.schemas.chat import ChatOverview
+from app.schemas.chat import ChatOverview, ChatWithName
 from app.schemas.message import MessageInChatOverview
 from app.services.message.message_query_service import MessageQueryService
 from app.services.message_delivery_service import MessageDeliveryService
@@ -17,11 +17,16 @@ class ChatOverviewService:
         self.message_query_service = message_query_service
 
     async def get_chat_overview_list(
-            self, user_id: int, chats: list[Chat]) -> List[ChatOverview] | []:
-        chat_ids = [chat.chat_id for chat in chats]
+            self,
+            user_id: int,
+            chats: list[ChatWithName],
+            chat_ids: list[int]
+    ) -> List[ChatOverview]:
 
         unread_counts_map = await (
-            self.message_delivery_service.get_unread_counts_map(user_id)
+            self.message_delivery_service.get_unread_counts_map(
+                user_id, chat_ids
+            )
         )
 
         last_messages_map = await (
@@ -32,23 +37,33 @@ class ChatOverviewService:
 
         chat_overviews = []
 
-        for chat in chats:
-            chat_id = chat.chat_id
+        for chat_with_name in chats:
+            chat_name = chat_with_name.chat_name
+            chat_id = chat_with_name.chat.chat_id
 
-            message = last_messages_map[chat_id]
-            last_message = MessageInChatOverview(
-                sent_at=message.sent_at,
-                content=message.content,
-                display_name=message.display_name
-            )
+
+            message_data = last_messages_map.get(chat_id)
+            last_message = None
+
+            if message_data:
+                last_message = MessageInChatOverview(
+                    sent_at=message_data['message'].sent_at,
+                    content=message_data['message'].content,
+                    display_name=message_data['display_name']
+                )
 
             chat_overviews.append(
                 ChatOverview(
                     chat_id=chat_id,
-                    name=chat.name,
+                    chat_name=chat_name,
                     unread_count=unread_counts_map[chat_id],
                     last_message=last_message,
                 )
             )
 
+        chat_overviews.sort(
+            key=lambda co: co.last_message.sent_at
+            if co.last_message else datetime.min,
+            reverse=True
+        )
         return chat_overviews

@@ -7,7 +7,7 @@ from app.schemas.token import TokenRead, TokenPairInfo, TokenPayload
 from app.schemas.user import UserCreate, UserRead
 from app.schemas.user import UserWithToken
 from app.services.auth_service import AuthService
-from app.services.user_service import UserService
+from app.services.user.user_service import UserService
 from app.api.deps import (
     get_auth_service,
     get_access_token_payload, get_user_service_for_token_operations
