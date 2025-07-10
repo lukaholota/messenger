@@ -5,6 +5,7 @@ import sqlalchemy
 from fastapi import FastAPI, Request
 from fastapi_limiter import FastAPILimiter
 from jose import JWTError
+from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
 from starlette.staticfiles import StaticFiles
 from starlette.status import HTTP_503_SERVICE_UNAVAILABLE, HTTP_409_CONFLICT, \
@@ -67,13 +68,20 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-app.mount(
-    "/", StaticFiles(directory="messenger-frontend/dist", html=True),
-    name="frontend"
-)
+# app.mount(
+#     "/", StaticFiles(directory="messenger-frontend/dist", html=True),
+#     name="frontend"
+# )
 
 # app.add_middleware(AuthMiddleware)
 # app.add_middleware(RateLimitMiddleware)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 api_prefix = "/api/v1"
 

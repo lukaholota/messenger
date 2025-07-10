@@ -1,81 +1,89 @@
-import { useState, useCallback, useEffect } from 'react';
-import { ServerToClientEvent } from '../types';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
+import type { MessageRead, ChatOverview, IncomingMessage, ServerToClientEvent } from '../types';
 
-const WebSocket_URL = 'ws://127.0.0.1:8000/api/v1/ws/chat';
+const WS_URL = 'ws://127.0.0.1:8000/api/v1/ws/chat';
 
-export const useWebSocket = (accessToken: string | null) => {
+function isTokenExpired(token: string): boolean {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.exp * 1000 < Date.now();
+  } catch (e) {
+    return true;
+  }
+}
+
+async function refreshToken(): Promise<string | null> {
+  try {
+    const refreshToken = localStorage.getItem('refresh_token');
+    if (refreshToken) {
+      const res = await axios.post('http://127.0.0.1:8000/api/v1/auth/refresh', { refresh_token: refreshToken });
+      const { access_token } = res.data;
+      localStorage.setItem('access_token', access_token);
+      return access_token;
+    }
+  } catch (err) {
+    console.error('Token refresh failed', err);
+  }
+  return null;
+}
+
+export const useWebSocket = () => {
   const [socket, setSocket] = useState<WebSocket | null>(null);
-  const [messages, setMessages] = useState<any[]>([]);
-  const [chatOverviewList, setChatOverviewList] = useState<any[]>([]);
+  const [messages, setMessages] = useState<MessageRead[]>([]);
+  const [chatOverviewList, setChatOverviewList] = useState<ChatOverview[]>([]);
 
-  const connectSocket = (token: string) => {
-    const ws = new WebSocket(`${WebSocket_URL}?access_token=${token}`);
+  const connectSocket = async () => {
+    let token = localStorage.getItem('access_token');
 
-    ws.onopen = () => {
-      console.log('WebSocket connected');
-    };
+    if (!token || isTokenExpired(token)) {
+      token = await refreshToken();
+    }
 
+    if (!token) {
+      console.error('No valid access token, cannot connect WebSocket');
+      return;
+    }
+
+    const ws = new WebSocket(`${WS_URL}?access_token=${token}`);
+
+    ws.onopen = () => console.log('WebSocket connected');
     ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      switch (data.event as ServerToClientEvent) {
+      const message: IncomingMessage = JSON.parse(event.data);
+      switch (message.event as ServerToClientEvent) {
         case 'message_sent':
-          setMessages((prevMessages) => [...prevMessages, data.data]);
+          setMessages((prev) => [...prev, message.data as MessageRead]);
           break;
         case 'chat_overview_list_sent':
-          setChatOverviewList(data.data);
+          setChatOverviewList(message.data as ChatOverview[]);
+          break;
+        case 'undelivered_messages_sent':
+          console.log('Undelivered messages:', message.data);
+          setMessages((prev) => [...prev, ...(message.data as MessageRead[])]);
           break;
         default:
+          console.warn('Unhandled WebSocket event:', message.event);
           break;
       }
     };
-
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-
-    ws.onclose = () => {
-      console.log('WebSocket disconnected');
-    };
+    ws.onclose = () => console.log('WebSocket disconnected');
+    ws.onerror = (err) => console.error('WebSocket error:', err);
 
     setSocket(ws);
   };
 
-  const reconnectSocket = useCallback((token: string) => {
-    if (socket) {
-      socket.close(); // Close the old socket if it exists
-    }
-    connectSocket(token);
-  }, [socket]);
-
-  const sendMessage = (chatId: string, message: string) => {
-    if (socket) {
-      socket.send(JSON.stringify({
-        event: 'new_message',
-        data: { chatId, text: message },
-      }));
-    }
-  };
-
-  const refreshToken = async () => {
-    try {
-      const refreshToken = localStorage.getItem('refresh_token');
-      if (refreshToken) {
-        const response = await axios.post('http://127.0.0.1:8000/api/v1/auth/refresh', { refresh_token: refreshToken });
-        const { access_token } = response.data;
-        localStorage.setItem('access_token', access_token);
-        reconnectSocket(access_token); // Reconnect WebSocket with new token
-      }
-    } catch (error) {
-      console.error("Token refresh failed:", error);
-    }
-  };
-
   useEffect(() => {
-    if (accessToken) {
-      connectSocket(accessToken);
-    }
-  }, [accessToken]);
+    connectSocket();
+  }, []);
 
-  return { socket, sendMessage, messages, chatOverviewList, reconnectSocket, refreshToken };
+  const sendMessage = (chatId: number, content: string) => {
+    socket?.send(
+      JSON.stringify({
+        event: 'new_message',
+        data: { chat_id: chatId, content: content },
+      })
+    );
+  };
+
+  return { sendMessage, messages, chatOverviewList };
 };

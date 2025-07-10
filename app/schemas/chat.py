@@ -1,5 +1,3 @@
-from dataclasses import dataclass
-
 from pydantic import BaseModel
 
 from app.models import Chat

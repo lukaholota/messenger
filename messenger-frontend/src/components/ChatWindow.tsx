@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 
 interface ChatWindowProps {
-  chatId: string;
-  sendMessage: (chatId: string, message: string) => void;
+  chatId: number;
+  sendMessage: (chatId: number, message: string) => void;
   messages: any[];
 }
 
-export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, sendMessage, messages }) => {
+export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, chatName, currentUserId,sendMessage, messages }) => {
   const [message, setMessage] = useState('');
 
   const handleSendMessage = () => {
@@ -15,22 +15,31 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, sendMessage, mes
   };
 
   return (
-    <div>
-      <h2>Chat {chatId}</h2>
-      <div className="messages">
-        {messages.map((msg, idx) => (
-          <div key={idx}>
-            <strong>{msg.sender}:</strong> {msg.text}
+      <div>
+          <h2>Chat {chatName}</h2>
+          <div className="messages">
+              {messages
+                  .filter((msg) => msg.chat_id === chatId)
+                  .map((msg, idx) => (
+                      <div
+                          key={idx}
+                          className={`message ${msg.user_id === currentUserId ? 'outgoing' : 'incoming'}`}
+                      >
+                          <div>{msg.content}</div>
+                          <div
+                              className="timestamp">{new Date(msg.sent_at).toLocaleTimeString()}</div>
+                      </div>
+                  ))}
           </div>
-        ))}
+          <div className="input-area">
+              <input
+                  type="text"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Type a message"
+              />
+              <button onClick={handleSendMessage}>➤</button>
+          </div>
       </div>
-      <input
-        type="text"
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-        placeholder="Type a message"
-      />
-      <button onClick={handleSendMessage}>Send</button>
-    </div>
-  );
-};
+          );
+          };

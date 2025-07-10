@@ -12,7 +12,18 @@ export const Login: React.FC<LoginProps> = ({ setAccessToken }) => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://127.0.0.1:8000/api/v1/token', { username, password });
+      const params = new URLSearchParams();
+      params.append('username', username);
+      params.append('password', password);
+
+      const response = await axios.post(
+          'http://127.0.0.1:8000/api/v1/token',
+          params,
+          {
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+      }}
+          );
       const { access_token, refresh_token } = response.data;
 
       // Store tokens in localStorage
