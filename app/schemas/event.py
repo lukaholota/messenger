@@ -40,6 +40,8 @@ class ChatOverviewListSentEvent(BaseModel):
     )
     data: list[ChatOverview]
 
+class GetChatInfoEvent(BaseModel):
+    chat_id: int
 
 ServerEvent: type = Union[
     ReadStatusUpdatedEvent,

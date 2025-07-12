@@ -21,3 +21,6 @@ class ChatQueryService:
             for chat, chat_name in data_raw
         ]
 
+    async def get_chat_info(self, chat_id, user_id):
+        chat = await self.chat_repository.get_chat_with_participants(chat_id)
+        chat_participant_count = len(chat.participants)

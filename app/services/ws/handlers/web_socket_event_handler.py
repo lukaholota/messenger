@@ -1,4 +1,5 @@
 from app.schemas.chat_read_status import ChatReadStatusUpdate
+from app.schemas.event import GetChatInfoEvent
 from app.schemas.message import MessageCreate
 from app.services.ws.chat_read_service import ChatReadService
 from app.services.ws.message_web_socket_handler import MessageWebSocketHandler
@@ -22,3 +23,8 @@ class WebSocketEventHandler:
             self, data_in: ChatReadStatusUpdate, user_id: int
     ):
         await self.chat_read_service.update_read_status(user_id, data_in)
+
+    async def handle_get_chat_info(
+            self, data_in: GetChatInfoEvent, user_id: int
+    ):
+        pass

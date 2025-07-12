@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import type { MessageRead, ChatOverview, IncomingMessage, ServerToClientEvent } from '../types';
+import type { Message, ChatOverview, IncomingMessage, ServerToClientEvent } from '../types';
 
 const WS_URL = 'ws://127.0.0.1:8000/api/v1/ws/chat';
 
@@ -30,7 +30,7 @@ async function refreshToken(): Promise<string | null> {
 
 export const useWebSocket = () => {
   const [socket, setSocket] = useState<WebSocket | null>(null);
-  const [messages, setMessages] = useState<MessageRead[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [chatOverviewList, setChatOverviewList] = useState<ChatOverview[]>([]);
 
   const connectSocket = async () => {
@@ -52,14 +52,14 @@ export const useWebSocket = () => {
       const message: IncomingMessage = JSON.parse(event.data);
       switch (message.event as ServerToClientEvent) {
         case 'message_sent':
-          setMessages((prev) => [...prev, message.data as MessageRead]);
+          setMessages((prev) => [...prev, message.data as Message]);
           break;
         case 'chat_overview_list_sent':
           setChatOverviewList(message.data as ChatOverview[]);
           break;
         case 'undelivered_messages_sent':
           console.log('Undelivered messages:', message.data);
-          setMessages((prev) => [...prev, ...(message.data as MessageRead[])]);
+          setMessages((prev) => [...prev, ...(message.data as Message[])]);
           break;
         default:
           console.warn('Unhandled WebSocket event:', message.event);

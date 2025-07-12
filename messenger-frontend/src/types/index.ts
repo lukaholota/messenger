@@ -1,4 +1,4 @@
-export interface MessageRead {
+export interface Message {
   message_id: number;
   content: string;
   sent_at: string;  // ISO datetime string (from FastAPI)

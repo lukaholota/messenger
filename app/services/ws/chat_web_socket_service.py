@@ -4,6 +4,8 @@ from starlette.websockets import WebSocket
 
 from logging import getLogger
 
+from app.infrastructure.types.event import ServerToClientEvent, \
+    ClientToServerEvent
 from app.models import Message
 from app.schemas.chat import ChatOverview, ChatWithName
 from app.schemas.chat_read_status import ChatReadStatusRead, \
@@ -78,23 +80,23 @@ class ChatWebSocketService:
 
     async def register_handlers(self):
         await self.redis_dispatcher.register(
-            event='message_sent',
+            event=ServerToClientEvent.MESSAGE_SENT,
             dto_class=MessageRead,
             handler=self.redis_event_handler.handle_message_sent
         )
         await self.redis_dispatcher.register(
-            event='read_status_updated',
+            event=ServerToClientEvent.READ_STATUS_UPDATED,
             dto_class=ChatReadStatusRead,
             handler=self.redis_event_handler.handle_read_status_updated
         )
 
         await self.websocket_dispatcher.register(
-            event='new_message',
+            event=ClientToServerEvent.NEW_MESSAGE,
             dto_class=MessageCreate,
             handler=self.websocket_event_handler.handle_new_message
         )
         await self.websocket_dispatcher.register(
-            event='read_message',
+            event=ClientToServerEvent.READ_MESSAGE,
             dto_class=ChatReadStatusUpdate,
             handler=self.websocket_event_handler.handle_read_message
         )

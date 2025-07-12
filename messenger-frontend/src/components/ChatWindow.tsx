@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
+import type {Message} from "../types";
 
 interface ChatWindowProps {
   chatId: number;
+  chatName: string;
+  currentUserId: number
   sendMessage: (chatId: number, message: string) => void;
-  messages: any[];
+  messages: Message[];
 }
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({ chatId, chatName, currentUserId,sendMessage, messages }) => {
