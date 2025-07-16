@@ -3,7 +3,7 @@ from typing import Literal, Union
 from pydantic import BaseModel, Field
 
 from app.infrastructure.types.event import ServerToClientEvent
-from app.schemas.chat import ChatOverview
+from app.schemas.chat import ChatOverview, ChatInfo
 from app.schemas.chat_read_status import ChatReadStatusRead
 from app.schemas.message import MessageRead
 
@@ -43,9 +43,19 @@ class ChatOverviewListSentEvent(BaseModel):
 class GetChatInfoEvent(BaseModel):
     chat_id: int
 
+class GetChatMessagesEvent(BaseModel):
+    chat_id: int
+
+class ChatInfoSentEvent(BaseModel):
+    event: Literal[ServerToClientEvent.CHAT_INFO_SENT] = Field(
+        default=ServerToClientEvent.CHAT_INFO_SENT,
+    )
+    data: ChatInfo
+
 ServerEvent: type = Union[
     ReadStatusUpdatedEvent,
     MessageSentEvent,
     UndeliveredMessagesSentEvent,
-    ChatOverviewListSentEvent
+    ChatOverviewListSentEvent,
+    ChatInfoSentEvent
 ]

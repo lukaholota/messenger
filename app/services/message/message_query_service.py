@@ -1,4 +1,7 @@
+from typing import Sequence, List
+
 from app.db.repository.message_repository import MessageRepository
+from app.models import Message
 
 
 class MessageQueryService:
@@ -16,3 +19,6 @@ class MessageQueryService:
             message.chat_id: {'message': message, 'display_name': display_name}
             for message, display_name in raw_results
         }
+
+    async def get_chat_messages(self, chat_id) -> List[]:
+        messages =  await self.message_repository.get_chat_messages(chat_id)

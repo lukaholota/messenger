@@ -1,4 +1,5 @@
-from sqlalchemy import select, func
+from sqlalchemy import select, func, Sequence
+from sqlalchemy.orm import selectinload
 
 from .base import BaseRepository
 from app.models.message import Message as MessageModel
@@ -42,3 +43,15 @@ class MessageRepository(
         result = await self.db.execute(query)
 
         return result.all()
+
+    async def get_chat_messages(self, chat_id) -> Sequence[MessageModel]:
+        query = (
+            select(MessageModel)
+            .options(selectinload(
+                MessageModel.sender, MessageModel.delivery
+            ))
+            .where(MessageModel.chat_id == chat_id)
+        )
+
+        result = await self.db.execute(query)
+        return result.scalars().all()

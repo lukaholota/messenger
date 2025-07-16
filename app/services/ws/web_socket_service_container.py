@@ -14,6 +14,7 @@ from app.infrastructure.cache.redis_pubsub import RedisPubSub
 from app.infrastructure.message_queue.rabbitmq_client import RabbitMQClient
 from app.models import User, Chat, MessageDelivery, Message
 from app.models.chat_read_status import ChatReadStatus
+from app.services.chat.chat_info_service import ChatInfoService
 from app.services.chat.chat_query_service import ChatQueryService
 from app.services.chat_overview_service import ChatOverviewService
 from app.services.message.message_query_service import MessageQueryService
@@ -72,4 +73,6 @@ class WebSocketServiceContainer:
             message_delivery_service=self.message_delivery_service,
             pubsub=self.pubsub
         )
-
+        self.chat_info_service = ChatInfoService(
+            chat_query_service=self.chat_query_service,
+        )

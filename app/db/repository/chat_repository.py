@@ -16,13 +16,26 @@ class ChatRepository(BaseRepository[ChatModel, ChatCreate, ChatUpdate]):
             is_group: bool,
             users_to_add: list[UserModel]
     ) -> ChatModel:
-        new_chat = ChatModel(name=name, is_group=is_group)
+        new_chat = ChatModel(is_group=is_group)
         self.db.add(new_chat)
+
+        await self.db.flush()
+
+        chat_participants = []
+
+        for user in users_to_add:
+            chat_participants.append(ChatParticipant(
+                user_id=user.user_id,
+                chat_id=new_chat.chat_id,
+                chat_name=name
+            ))
 
         if users_to_add:
             new_chat.participants.extend(users_to_add)
 
         return new_chat
+
+        #TODO це жесть насправді, тут треба жоско переробляти
 
     async def get_chat_by_participants_ids(
             self,
@@ -58,7 +71,7 @@ class ChatRepository(BaseRepository[ChatModel, ChatCreate, ChatUpdate]):
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
 
-    async def get_chat_with_participants(self, chat_id) -> ChatModel | None:
+    async def get_chat_with_users(self, chat_id) -> ChatModel | None:
         query = select(ChatModel).where(
             ChatModel.chat_id == chat_id
         ).options(
@@ -66,6 +79,23 @@ class ChatRepository(BaseRepository[ChatModel, ChatCreate, ChatUpdate]):
         )
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
+
+    async def get_chat_with_chat_participants_raw(self, chat_id):
+        query = (
+            select(ChatModel, ChatParticipant, UserModel)
+            .select_from(ChatModel)
+            .join(
+                ChatParticipant,
+                onclause=ChatParticipant.chat_id == ChatModel.chat_id,
+            )
+            .join(
+                UserModel,
+                onclause=ChatParticipant.user_id == UserModel.user_id
+            )
+            .where(ChatModel.chat_id == chat_id)
+        )
+        result = await self.db.execute(query)
+        return result.all()
 
     async def delete_user_from_group_chats(self, user_id):
         group_chat_ids_subquery = select(ChatModel.chat_id).where(

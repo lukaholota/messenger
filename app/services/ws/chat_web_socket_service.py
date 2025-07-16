@@ -11,10 +11,12 @@ from app.schemas.chat import ChatOverview, ChatWithName
 from app.schemas.chat_read_status import ChatReadStatusRead, \
     ChatReadStatusUpdate
 from app.schemas.event import UndeliveredMessagesSentEvent, \
-    ChatOverviewListSentEvent
+    ChatOverviewListSentEvent, GetChatInfoEvent
 from app.schemas.message import MessageRead, MessageCreate
+from app.services.chat.chat_info_service import ChatInfoService
 from app.services.chat.chat_query_service import ChatQueryService
 from app.services.chat_overview_service import ChatOverviewService
+from app.services.message.message_query_service import MessageQueryService
 from app.services.message_delivery_service import MessageDeliveryService
 from app.services.ws.chat_read_service import ChatReadService
 from app.services.ws.dispatchers.websocket_event_dispatcher import \
@@ -41,21 +43,28 @@ class ChatWebSocketService:
             chat_read_service: ChatReadService,
             chat_query_service: ChatQueryService,
             chat_overview_service: ChatOverviewService,
+            message_query_service: MessageQueryService,
             message_delivery_service: MessageDeliveryService,
             message_handler: MessageWebSocketHandler,
+            chat_info_service: ChatInfoService,
     ):
         self.websocket = websocket
         self.event_sender = EventSender(websocket)
         self.subscription_service = subscription_service
         self.message_handler = message_handler
         self.message_delivery_service = message_delivery_service
+        self.message_query_service = message_query_service
         self.chat_query_service = chat_query_service
         self.chat_overview_service = chat_overview_service
+        self.chat_info_service = chat_info_service
         self.redis_dispatcher = ChatRedisEventDispatcher()
         self.websocket_dispatcher = ChatWebSocketEventDispatcher()
         self.websocket_event_handler = WebSocketEventHandler(
             message_handler=self.message_handler,
+            message_query_service=self.message_query_service,
             chat_read_service=chat_read_service,
+            chat_info_service=self.chat_info_service,
+            event_sender=self.event_sender
         )
         self.redis_event_handler = RedisEventHandler(
             websocket=self.websocket,
@@ -99,6 +108,11 @@ class ChatWebSocketService:
             event=ClientToServerEvent.READ_MESSAGE,
             dto_class=ChatReadStatusUpdate,
             handler=self.websocket_event_handler.handle_read_message
+        )
+        await self.websocket_dispatcher.register(
+            event=ClientToServerEvent.GET_CHAT_INFO,
+            dto_class=GetChatInfoEvent,
+            handler=self.websocket_event_handler.handle_get_chat_info
         )
 
     async def handle_reconnect(

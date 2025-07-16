@@ -56,6 +56,12 @@ class ChatOverview(BaseModel):
     last_message: MessageInChatOverview
     unread_count: int
 
+class ChatInfo(BaseModel):
+    chat_id: int
+    chat_name: str
+    is_group: bool
+    participants: list[UserRead]
+    participant_count: int
 
 class ChatWithName(BaseModel):
     chat: Chat

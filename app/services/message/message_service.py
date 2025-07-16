@@ -29,7 +29,7 @@ class MessageService:
         if not message_in.content:
             raise MessageValidationError('The message is empty')
 
-        existing_chat = await self.chat_repository.get_chat_with_participants(
+        existing_chat = await self.chat_repository.get_chat_with_users(
             message_in.chat_id
         )
         if not existing_chat:
@@ -53,14 +53,8 @@ class MessageService:
 
             await self.db.flush()
 
-
-            recipient_ids = [
-                user_id for user_id in chat_participant_ids
-                if user_id != self.current_user_id
-            ]
-
             await self.message_delivery_service.create_message_deliveries_bulk(
-                user_ids=recipient_ids,
+                user_ids=chat_participant_ids,
                 message_id=message.message_id,
                 chat_id=message.chat_id,
             )

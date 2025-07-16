@@ -17,6 +17,7 @@ class MessageRead(MessageBase):
     class Config:
         from_attributes = True
 
+
 class MessageInChatOverview(MessageBase):
     sent_at: datetime
     content: str
@@ -31,3 +32,6 @@ class MessageCreate(MessageBase):
 
 class MessageUpdate(MessageBase):
     pass
+
+
+class MessageWithInfo(BaseModel):

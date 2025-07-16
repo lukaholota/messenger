@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import type { Message, ChatOverview, IncomingMessage, ServerToClientEvent } from '../types';
+import type { Message, ChatOverview, IncomingMessage, ServerToClientEvent, ChatInfo } from '../types';
 
 const WS_URL = 'ws://127.0.0.1:8000/api/v1/ws/chat';
 
@@ -32,6 +32,7 @@ export const useWebSocket = () => {
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatOverviewList, setChatOverviewList] = useState<ChatOverview[]>([]);
+  const [chatInfo, setChatInfo] = useState<ChatInfo | null>(null);
 
   const connectSocket = async () => {
     let token = localStorage.getItem('access_token');
@@ -61,6 +62,9 @@ export const useWebSocket = () => {
           console.log('Undelivered messages:', message.data);
           setMessages((prev) => [...prev, ...(message.data as Message[])]);
           break;
+        case 'chat_info_sent':
+          setChatInfo(message.data as ChatInfo)
+          break;
         default:
           console.warn('Unhandled WebSocket event:', message.event);
           break;
@@ -85,5 +89,12 @@ export const useWebSocket = () => {
     );
   };
 
-  return { sendMessage, messages, chatOverviewList };
+  const requestChatInfo = (chatId: number) => {
+    socket?.send(JSON.stringify({
+      event: 'get_chat_info',
+      data: { chat_id: chatId }
+    }))
+  }
+
+  return { sendMessage, messages, chatOverviewList, chatInfo, requestChatInfo };
 };

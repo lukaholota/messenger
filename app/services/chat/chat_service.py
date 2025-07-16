@@ -201,7 +201,7 @@ class ChatService:
             raise
 
     async def _get_and_validate_chat_with_participants(self, chat_id: int):
-        existing_chat = await self.chat_repository.get_chat_with_participants(
+        existing_chat = await self.chat_repository.get_chat_with_users(
             chat_id
         )
         if not existing_chat:
