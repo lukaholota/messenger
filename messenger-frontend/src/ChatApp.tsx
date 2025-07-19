@@ -8,11 +8,19 @@ const ChatApp: React.FC<{ accessToken: string }> = ({ accessToken }) => {
   const [currentChatId, setCurrentChatId] = useState<number | null>(null);
   const currentUserId = getUserIdFromToken(accessToken);
 
-  const { sendMessage, messages, chatOverviewList, chatInfo, requestChatInfo } = useWebSocket();
+  const {
+      sendMessage,
+      messages,
+      chatOverviewList,
+      chatInfo,
+      requestChatInfo,
+      requestChatMessages
+  } = useWebSocket();
 
   useEffect(() => {
     if (currentChatId != null) {
       requestChatInfo(currentChatId);
+      requestChatMessages(currentChatId);
     }
   }, [currentChatId]);
 

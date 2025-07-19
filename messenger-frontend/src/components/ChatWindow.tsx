@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import type {Message, ChatInfo} from "../types";
+import type {Message, ChatInfo, User} from "../types";
 import { ChatInfoModal } from './ChatInfoModal';
+import '../css/ChatWindow.css';
 
 interface ChatWindowProps {
   chatId: number;
@@ -17,6 +18,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 }) => {
   const [message, setMessage] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
 
   const handleSendMessage = () => {
     sendMessage(chatId, message);
@@ -26,6 +28,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       requestChatInfo(chatId);
       setIsModalOpen(true);
   }
+
+  const isGroup = chatInfo?.is_group;
+  const participantMap = new Map<number, User>();
+  chatInfo?.participants?.forEach(user =>{
+      participantMap.set(user.user_id, user);
+  });
+
 
   return (
       <div>
@@ -41,11 +50,24 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                       <div
                           key={idx}
                           className={`message ${msg.user_id === currentUserId ? 'outgoing' : 'incoming'}`}
+                          onClick={() => {
+                            if (isGroup && msg.user_id === currentUserId) {
+                              setSelectedMessage(msg);
+                            }
+                          }}
                       >
+                          <span>{msg.display_name}</span>
                           <div>{msg.content}</div>
                           <div
-                              className="timestamp">{new Date(msg.sent_at).toLocaleTimeString()}</div>
+                              className="timestamp">{new Date(msg.sent_at).toLocaleTimeString()}
+                          </div>
+                          {msg.user_id === currentUserId && (
+                          <span className="read-indicator">
+                            {msg.is_read ? '✓✓' : '✓'}
+                          </span>
+                          )}
                       </div>
+
                   ))}
           </div>
           <div className="input-area">
@@ -60,6 +82,26 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
           {isModalOpen && chatInfo && (
               <ChatInfoModal chatInfo={chatInfo} onClose={() => setIsModalOpen(false)} />
+          )}
+
+
+          {selectedMessage && (
+              <div className="read-modal">
+                  <h4>Прочитали:</h4>
+                  <ul>
+                      {selectedMessage.read_at_list.map((entry, idx) => {
+                          const [userIdStr, readAt] = Object.entries(entry)[0];
+                          const userId = Number(userIdStr)
+                          const readBy = participantMap.get(userId)
+                          return (
+                              <li key={idx}>
+                                  👤 {readBy?.display_name} - {readAt}
+                              </li>
+                          );
+                      })};
+                  </ul>
+                  <button onClick={() => setSelectedMessage(null)}>X</button>
+              </div>
           )}
       </div>
   );

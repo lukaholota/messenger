@@ -33,7 +33,7 @@ class Message(Base):
     back_populates='messages',
     lazy='raise_on_sql'
     )
-    delivery = relationship(
+    deliveries = relationship(
         'MessageDelivery',
         back_populates='message',
         lazy='raise_on_sql'

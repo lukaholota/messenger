@@ -34,4 +34,13 @@ class MessageUpdate(MessageBase):
     pass
 
 
-class MessageWithInfo(BaseModel):
+class ChatMessage(BaseModel):
+    message_id: int
+    chat_id: int
+    user_id: int
+    is_read: bool = False
+    read_at_list: list[dict[int, datetime | None]] | None = None
+    display_name: str
+    content: str
+    sent_at: datetime
+

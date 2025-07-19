@@ -47,9 +47,10 @@ class MessageRepository(
     async def get_chat_messages(self, chat_id) -> Sequence[MessageModel]:
         query = (
             select(MessageModel)
-            .options(selectinload(
-                MessageModel.sender, MessageModel.delivery
-            ))
+            .options(
+                selectinload(MessageModel.sender),
+                selectinload(MessageModel.deliveries)
+            )
             .where(MessageModel.chat_id == chat_id)
         )
 

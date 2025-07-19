@@ -60,10 +60,16 @@ export const useWebSocket = () => {
           break;
         case 'undelivered_messages_sent':
           console.log('Undelivered messages:', message.data);
-          setMessages((prev) => [...prev, ...(message.data as Message[])]);
+          setMessages((prev) => [...(message.data as Message[]), ...prev]);
           break;
         case 'chat_info_sent':
           setChatInfo(message.data as ChatInfo)
+          break;
+        case 'chat_messages_sent':
+          setMessages((prev) => [
+              ...prev.filter(m => m.chat_id !== (message.data?.chat_id)),
+              ...(message.data as Message[]),
+          ]);
           break;
         default:
           console.warn('Unhandled WebSocket event:', message.event);
@@ -96,5 +102,12 @@ export const useWebSocket = () => {
     }))
   }
 
-  return { sendMessage, messages, chatOverviewList, chatInfo, requestChatInfo };
+  const requestChatMessages = (chatId: number) => {
+    socket?.send(JSON.stringify({
+      event: 'get_chat_messages',
+      data: { chat_id: chatId }
+    }))
+  }
+
+  return { sendMessage, messages, chatOverviewList, chatInfo, requestChatInfo, requestChatMessages };
 };

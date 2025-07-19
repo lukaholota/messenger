@@ -60,7 +60,7 @@ async def chat_websocket(
                 message_handler=container.message_websocket_handler,
                 chat_read_service=container.chat_read_service,
                 chat_info_service=container.chat_info_service,
-                message_query_service=container.message_query_service,
+                chat_message_constructor=container.chat_message_constructor,
             )
         except WebSocketException as e:
             logger.warning(f"WebSocket connection failed: {e.message}")

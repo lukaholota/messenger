@@ -1,9 +1,12 @@
 export interface Message {
   message_id: number;
-  content: string;
-  sent_at: string;  // ISO datetime string (from FastAPI)
-  user_id: number;
   chat_id: number;
+  user_id: number;
+  content: string;
+  is_read: boolean;
+  read_at_list: Record<number, string | null>[]; // [{1: "2024-07-16T13:00:00Z"}, {2: null}]
+  display_name: string;
+  sent_at: string; // Не забудь це поле, якщо ще не було
 }
 
 export interface MessageInChatOverview {
@@ -39,7 +42,8 @@ export type ServerToClientEvent =
   | 'read_status_updated'
   | 'undelivered_messages_sent'
   | 'chat_overview_list_sent'
-  | 'chat_info_sent';
+  | 'chat_info_sent'
+  | 'chat_messages_sent'
 
 export interface IncomingMessage {
   event: ServerToClientEvent;

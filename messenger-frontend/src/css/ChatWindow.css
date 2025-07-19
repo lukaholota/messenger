@@ -1,0 +1,41 @@
+.read-indicator {
+  margin-left: 6px;
+  font-size: 12px;
+  color: #00bfa5;
+}
+
+.read-modal {
+  position: fixed;
+  top: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  border-radius: 8px;
+  max-width: 300px;
+}
+
+.read-modal h4 {
+  margin-top: 0;
+}
+
+.read-modal ul {
+  padding: 0;
+  list-style: none;
+}
+
+.read-modal li {
+  padding: 5px 0;
+}
+
+.read-modal button {
+  margin-top: 10px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}

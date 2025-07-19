@@ -42,5 +42,5 @@ class MessageDelivery(Base):
 
     message = relationship(
         'Message',
-        back_populates='delivery'
+        back_populates='deliveries'
     )

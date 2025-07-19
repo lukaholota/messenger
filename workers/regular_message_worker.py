@@ -12,15 +12,16 @@ from app.db.repository.chat_repository import ChatRepository
 from app.db.repository.message_delivery_repository import \
     MessageDeliveryRepository
 from app.db.repository.message_repository import MessageRepository
+from app.db.repository.user_repository import UserRepository
 
 from app.db.session import AsyncSessionFactory
 from app.infrastructure.cache.connection import get_redis_client
 from app.infrastructure.cache.redis_pubsub import RedisPubSub
 from app.infrastructure.message_queue.rabbitmq_connection_provider import \
     RabbitMQConnectionProvider
-from app.models import Chat, Message, MessageDelivery
+from app.models import Chat, Message, MessageDelivery, User
 
-from app.schemas.message import MessageCreate, MessageRead
+from app.schemas.message import MessageCreate, ChatMessage
 from app.services.message_delivery_service import MessageDeliveryService
 from app.services.message.message_service import MessageService
 
@@ -137,6 +138,7 @@ async def process_message_logic(raw_message_body: bytes):
             message_delivery_repository = MessageDeliveryRepository(
                 db, MessageDelivery
             )
+            user_repository = UserRepository(db, User)
 
             message_delivery_service = MessageDeliveryService(
                 db=db,
@@ -162,12 +164,15 @@ async def process_message_logic(raw_message_body: bytes):
             logger.info(f"Message created by worker: "
                         f"{created_message.message_id}")
 
-            data = MessageRead(
+            sender = await user_repository.get_by_id(user_id)
+
+            data = ChatMessage(
                 message_id=created_message.message_id,
                 user_id=created_message.user_id,
                 chat_id=created_message.chat_id,
                 content=created_message.content,
-                sent_at=created_message.sent_at.isoformat()
+                sent_at=created_message.sent_at.isoformat(),
+                display_name=sender.display_name
             ).model_dump(mode='json')
             print(data)
 

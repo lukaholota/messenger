@@ -17,6 +17,8 @@ from app.models.chat_read_status import ChatReadStatus
 from app.services.chat.chat_info_service import ChatInfoService
 from app.services.chat.chat_query_service import ChatQueryService
 from app.services.chat_overview_service import ChatOverviewService
+from app.services.message.chat_messages_constructor import \
+    ChatMessagesConstructor
 from app.services.message.message_query_service import MessageQueryService
 from app.services.message_delivery_service import MessageDeliveryService
 from app.services.redis_token_blacklist_service import \
@@ -55,6 +57,9 @@ class WebSocketServiceContainer:
         self.chat_query_service = ChatQueryService(self.chat_repository)
         self.message_query_service = MessageQueryService(
             self.message_repository
+        )
+        self.chat_message_constructor = ChatMessagesConstructor(
+            message_query_service=self.message_query_service,
         )
         self.user_query_service = UserQueryService(self.user_repository)
         self.chat_overview_service = ChatOverviewService(
