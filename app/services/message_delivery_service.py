@@ -32,6 +32,8 @@ class MessageDeliveryService:
             self.message_delivery_repository.
                 get_undelivered_messages_with_content(user_id=user_id)
         )
+        if not deliveries:
+            return []
 
         for delivery in deliveries:
             delivery.is_delivered = True

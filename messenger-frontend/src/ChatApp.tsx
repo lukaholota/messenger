@@ -2,7 +2,7 @@ import { ChatList } from './components/ChatList';
 import { ChatWindow } from './components/ChatWindow';
 import { useWebSocket } from './hooks/useWebSocket'; // Залишаємо імпорт
 import { getUserIdFromToken } from './utils/auth';
-import React, {useState, useEffect} from "react";
+import React, {useState, useEffect, useMemo} from "react";
 
 const ChatApp: React.FC<{ accessToken: string }> = ({ accessToken }) => {
   const [currentChatId, setCurrentChatId] = useState<number | null>(null);
@@ -10,7 +10,7 @@ const ChatApp: React.FC<{ accessToken: string }> = ({ accessToken }) => {
 
   const {
       sendMessage,
-      messages,
+      messagesByChat,
       chatOverviewList,
       chatInfo,
       requestChatInfo,
@@ -22,10 +22,14 @@ const ChatApp: React.FC<{ accessToken: string }> = ({ accessToken }) => {
       requestChatInfo(currentChatId);
       requestChatMessages(currentChatId);
     }
-  }, [currentChatId]);
+  }, [currentChatId, requestChatInfo, requestChatMessages]);
 
   const selectedChat = chatOverviewList.find(chat => chat.chat_id === currentChatId);
   const chatName = selectedChat?.chat_name ?? '';
+
+  const selectedChatMessages = useMemo(() => {
+      return currentChatId ? (messagesByChat[currentChatId] || []) : [];
+  }, [currentChatId, messagesByChat]);
 
   return (
     <div className="app">
@@ -39,7 +43,7 @@ const ChatApp: React.FC<{ accessToken: string }> = ({ accessToken }) => {
             chatName={chatName}
             currentUserId={currentUserId}
             sendMessage={sendMessage}
-            messages={messages}
+            messages={selectedChatMessages}
             chatInfo={chatInfo}
             requestChatInfo={requestChatInfo}
           />

@@ -126,8 +126,9 @@ class ChatWebSocketService:
         undelivered_messages = await (
             self.message_delivery_service
             .mark_messages_delivered(user_id)
-        )
-        await self.send_undelivered_messages(undelivered_messages)
+            )
+        if undelivered_messages:
+            await self.send_undelivered_messages(undelivered_messages)
 
         chat_overview_list = await (
             self.prepare_chat_overview_list_on_reconnect(

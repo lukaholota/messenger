@@ -45,10 +45,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
           <div className="messages">
               {messages
-                  .filter((msg) => msg.chat_id === chatId)
-                  .map((msg, idx) => (
+                  .map((msg) => (
                       <div
-                          key={idx}
+                          key={msg.message_id}
                           className={`message ${msg.user_id === currentUserId ? 'outgoing' : 'incoming'}`}
                           onClick={() => {
                             if (isGroup && msg.user_id === currentUserId) {
