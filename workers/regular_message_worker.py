@@ -21,7 +21,9 @@ from app.infrastructure.message_queue.rabbitmq_connection_provider import \
     RabbitMQConnectionProvider
 from app.models import Chat, Message, MessageDelivery, User
 
-from app.schemas.message import MessageCreate, ChatMessage
+from app.schemas.message import MessageCreate
+from app.services.message.chat_messages_constructor import \
+    ChatMessagesConstructor
 from app.services.message_delivery_service import MessageDeliveryService
 from app.services.message.message_service import MessageService
 
@@ -132,7 +134,7 @@ async def process_message_logic(raw_message_body: bytes):
                 "Invalid message payload: missing required fields"
             )
 
-        async with AsyncSessionFactory() as db:
+        async with (AsyncSessionFactory() as db):
             chat_repository = ChatRepository(db, Chat)
             message_repository = MessageRepository(db, Message)
             message_delivery_repository = MessageDeliveryRepository(
@@ -153,27 +155,28 @@ async def process_message_logic(raw_message_body: bytes):
                 message_delivery_service=message_delivery_service
             )
 
+            message_constructor = ChatMessagesConstructor()
+
             message_in = MessageCreate(
                 chat_id=chat_id,
                 content=content,
             )
 
-            created_message = await message_service.create_message(
+            created_message, deliveries = await message_service.create_message(
                 message_in
             )
+
+
+
             logger.info(f"Message created by worker: "
                         f"{created_message.message_id}")
 
             sender = await user_repository.get_by_id(user_id)
 
-            data = ChatMessage(
-                message_id=created_message.message_id,
-                user_id=created_message.user_id,
-                chat_id=created_message.chat_id,
-                content=created_message.content,
-                sent_at=created_message.sent_at.isoformat(),
-                display_name=sender.display_name
-            ).model_dump(mode='json')
+            chat_message = await message_constructor.construct_chat_message(
+                message=created_message, deliveries=deliveries, sender=sender
+            )
+            data = chat_message.model_dump(mode='json')
             print(data)
 
             await redis_pubsub.publish(f'chat:{chat_id}', json.dumps({

@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 
 from app.db.repository.base import BaseRepository
+from app.models import Contact
 from app.models.user import User as UserModel
 from app.schemas.user import UserCreate, UserUpdate
 
@@ -73,3 +74,25 @@ class UserRepository(BaseRepository[UserModel, UserCreate, UserUpdate]):
     async def soft_delete_user(self, user: UserModel):
         user.deleted_at = datetime.now(timezone.utc)
         user.display_name = 'Deleted user'
+
+    async def search_users_raw(self, prompt: str, user_id: int):
+        query = (
+            select(
+                UserModel.user_id,
+                UserModel.username,
+                UserModel.display_name,
+                Contact.name.label('contact_name')
+            )
+            .outerjoin(
+                Contact,
+                (Contact.user_id==user_id) &
+                (Contact.contact_id==UserModel.user_id)
+            )
+            .where(
+                UserModel.username.like(f'%{prompt}%') | Contact.name.like(f'%{prompt}%'),
+                UserModel.user_id != user_id,
+                UserModel.deleted_at.is_(None)
+                )
+        )
+        result = await self.db.execute(query)
+        return result.fetchall()

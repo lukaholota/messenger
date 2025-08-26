@@ -39,8 +39,7 @@ class ChatMessage(BaseModel):
     chat_id: int
     user_id: int
     is_read: bool = False
-    read_at_list: list[dict[int, datetime | None]] | None = None
+    read_at_list: list[dict[int, datetime | None]]
     display_name: str
     content: str
     sent_at: datetime
-

@@ -1,3 +1,6 @@
+from datetime import datetime, timezone
+from typing import Dict, List
+
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -7,7 +10,9 @@ from app.infrastructure.exceptions.exceptions import DatabaseError, MessageValid
 from app.models import Message
 from app.schemas.message import MessageCreate
 from app.services.message_delivery_service import MessageDeliveryService
+from logging import getLogger
 
+logger = getLogger(__name__)
 
 class MessageService:
     def __init__(
@@ -25,7 +30,8 @@ class MessageService:
         self.current_user_id = current_user_id
         self.message_delivery_service = message_delivery_service
 
-    async def create_message(self, message_in: MessageCreate) -> Message:
+    async def create_message(self, message_in: MessageCreate) \
+            -> (Message, List[Dict]):
         if not message_in.content:
             raise MessageValidationError('The message is empty')
 
@@ -53,16 +59,34 @@ class MessageService:
 
             await self.db.flush()
 
+            deliveries = []
+
+            current_time = datetime.now(timezone.utc)
+
+            for user_id in chat_participant_ids:
+                is_sender = user_id == self.current_user_id
+
+                delivery_data = {
+                    'user_id': user_id,
+                    'chat_id': existing_chat.chat_id,
+                    'message_id': message.message_id,
+                    'is_delivered': True if is_sender else False,
+                    'is_read': True if is_sender else False,
+                    'delivered_at': current_time if is_sender else None,
+                    'read_at': current_time if is_sender else None,
+                }
+                deliveries.append(delivery_data)
+
+            logger.info(f'deliveries: {deliveries}')
+
             await self.message_delivery_service.create_message_deliveries_bulk(
-                user_ids=chat_participant_ids,
-                message_id=message.message_id,
-                chat_id=message.chat_id,
+                deliveries=deliveries
             )
 
             await self.db.commit()
             await self.db.refresh(message)
 
-            return message
+            return message, deliveries
 
         except SQLAlchemyError as db_exc:
             await self.db.rollback()

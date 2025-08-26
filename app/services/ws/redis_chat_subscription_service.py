@@ -17,31 +17,36 @@ logger = getLogger(__name__)
 class RedisChatSubscriptionService:
     def __init__(
             self,
-            pubsub: RedisPubSub
+            pubsub: RedisPubSub,
+            dispatch: Callable[[RedisEvent], Awaitable[None]]
     ):
         self.tasks: List[asyncio.Task] = []
         self.pubsubs: Dict[str, PubSub] = {}
         self.pubsub = pubsub
+        self.dispatch = dispatch
 
     async def subscribe_to_every_chat(
             self,
             user_id,
             chat_ids,
-            callback: Callable[[RedisEvent], Awaitable[None]],
     ):
         for chat_id in chat_ids:
             channel = f'chat:{chat_id}'
-            pubsub = await self.pubsub.subscribe(channel)
-            task = asyncio.create_task(self.listen_to_channel(
-                pubsub,
-                callback
-            ))
-            self.tasks.append(task)
-            self.pubsubs[channel] = pubsub
+            await self.subscribe_to_channel(channel, user_id)
 
-            logger.info(f'User {user_id} subscribed to channel {channel}')
+    async def subscribe_to_channel(
+            self, channel: str, user_id: int | None = None
+    ):
+        pubsub = await self.pubsub.subscribe(channel)
+        task = asyncio.create_task(self.listen_to_channel(
+            pubsub
+        ))
+        self.tasks.append(task)
+        self.pubsubs[channel] = pubsub
 
-    async def listen_to_channel(self, pubsub: PubSub, callback: Callable):
+        logger.info(f'User {user_id} subscribed to channel {channel}')
+
+    async def listen_to_channel(self, pubsub: PubSub):
         try:
             async for message in pubsub.listen():
                 if message['type'] == 'message':
@@ -49,7 +54,7 @@ class RedisChatSubscriptionService:
                     data = json.loads(message['data'])
 
                     redis_event = RedisEvent(**data)
-                    await callback(redis_event)
+                    await self.dispatch(redis_event)
         except Exception as e:
             logger.exception(f'Error in listen_to_channel {e}')
             raise WebSocketException('error listening to channel')

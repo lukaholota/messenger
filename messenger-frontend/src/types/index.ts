@@ -27,12 +27,25 @@ export interface User {
   display_name: string;
 }
 
+export interface SearchUser {
+  user_id: number;
+  display_name: string;
+  username: string;
+  is_contact: boolean;
+}
+
 export interface ChatInfo {
   chat_id: number;
   chat_name: string;
   participants: User[]
   participant_count: number;
   is_group: boolean;
+}
+
+export interface Contact {
+  user_id: number;
+  contact_id: number;
+  name: string;
 }
 
 
@@ -44,8 +57,17 @@ export type ServerToClientEvent =
   | 'chat_overview_list_sent'
   | 'chat_info_sent'
   | 'chat_messages_sent'
+  | 'search_result_sent'
+  | 'chat_created'
+  | 'new_chat_sent'
+  | 'contacts_sent'
+  | 'added_to_contacts'
 
 export interface IncomingMessage {
   event: ServerToClientEvent;
   data: unknown;
 }
+
+export type NewMessagePayload =
+  | { type: 'existing_chat'; chatId: number; content: string }
+  | { type: 'new_chat'; targetUserId: number; content: string }

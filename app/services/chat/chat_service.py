@@ -1,3 +1,5 @@
+from typing import Dict
+
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,7 +14,7 @@ from app.infrastructure.exceptions.exceptions import (
 )
 from app.infrastructure.cache.redis_cache import RedisCache
 from app.models import User, Chat
-from app.schemas.chat import ChatCreate, ChatUpdate
+from app.schemas.chat import ChatCreate, ChatUpdate, ChatWithName
 
 
 class ChatService:
@@ -22,21 +24,20 @@ class ChatService:
             chat_repository: ChatRepository,
             user_repository: UserRepository,
             chat_read_status_repository: ChatReadStatusRepository,
-            current_user_id: int,
             redis: RedisCache
     ):
         self.db: AsyncSession = db
         self.chat_repository = chat_repository
         self.user_repository = user_repository
         self.chat_read_status_repository = chat_read_status_repository
-        self.current_user_id = current_user_id
         self.redis = redis
 
-    async def create_chat(
+    async def create_chat_in_db(
             self,
             chat_in: ChatCreate,
+            current_user_id: int
     ):
-        self._validate_chat_input(chat_in)
+        self._validate_chat_input(chat_in, current_user_id)
 
         users_to_add = await self._get_and_validate_participants(
             chat_in.participant_ids
@@ -47,11 +48,11 @@ class ChatService:
             chat_in.participant_ids
         )
 
-        chat_name = self._determine_chat_name(chat_in, users_to_add)
+        chat_name_map = self._get_chat_name_map(chat_in, users_to_add)
 
         try:
             chat = await self._create_chat_in_db(
-                chat_name=chat_name,
+                chat_name_map=chat_name_map,
                 users_to_add=users_to_add,
                 is_group=chat_in.is_group,
             )
@@ -65,7 +66,10 @@ class ChatService:
             await self.db.commit()
             await self.db.refresh(chat, attribute_names=['participants'])
 
-            return chat
+            return ChatWithName(
+                chat=chat,
+                chat_name=chat_name_map[current_user_id]
+            )
         except SQLAlchemyError as db_exc:
             await self.db.rollback()
             raise DatabaseError(
@@ -75,7 +79,7 @@ class ChatService:
             await self.db.rollback()
             raise exc
 
-    def _validate_chat_input(self, chat_in: ChatCreate):
+    def _validate_chat_input(self, chat_in: ChatCreate, current_user_id: int):
         if not chat_in.participant_ids:
             raise ChatValidationError("No participants in chat")
         if len(set(chat_in.participant_ids)) != len(chat_in.participant_ids):
@@ -84,6 +88,11 @@ class ChatService:
             raise ChatValidationError("More than two users in non group chat")
         if not chat_in.is_group and len(chat_in.participant_ids) < 2:
             raise ChatValidationError("Only one member in private chat")
+        if current_user_id not in chat_in.participant_ids:
+            raise ChatValidationError(
+                "Current user is not in created by himself chat"
+            )
+
 
     async def _get_and_validate_participants(
             self,
@@ -117,26 +126,37 @@ class ChatService:
                     "Private chat for these users already exists"
                 )
 
-    def _determine_chat_name(
+    def _get_chat_name_map(
             self,
             chat_in: ChatCreate,
             users_to_add: list[User]
-    ) -> str:
-        chat_name = chat_in.name
-        if chat_name:
-            return chat_name
-        participants_names = [user.display_name for user in users_to_add]
-        return ', '.join(participants_names)
+    ) -> Dict[int, str]:
+        if chat_in.is_group:
+            chat_name = chat_in.chat_name or ', '.join(
+                user.display_name for user in users_to_add
+            )
+            return {user.user_id: chat_name for user in users_to_add}
+
+        if len(users_to_add) != 2:
+            raise ChatValidationError(
+                'More than two participants in private chat, logic error'
+            )
+
+        u1, u2 = users_to_add
+        return {
+            u1.user_id: u2.display_name,
+            u2.user_id: u1.display_name
+        }
 
     async def _create_chat_in_db(
             self,
             *,
-            chat_name: str,
+            chat_name_map: Dict[int, str],
             users_to_add: list[User],
             is_group: bool
     ) -> Chat:
         chat = await self.chat_repository.create_chat_with_participants(
-            name=chat_name,
+            chat_name_map=chat_name_map,
             is_group=is_group,
             users_to_add=users_to_add
         )
@@ -156,7 +176,8 @@ class ChatService:
 
     async def get_chat(
             self,
-            chat_id: int
+            chat_id: int,
+            current_user_id: int
     ) -> Chat:
         redis_key = f'chat:{chat_id}:full'
 
@@ -170,7 +191,7 @@ class ChatService:
         if not existing_chat:
             raise ChatValidationError('Chat not found')
 
-        if self.current_user_id not in [
+        if current_user_id not in [
             p.user_id for p in existing_chat.participants
         ]:
             raise ChatValidationError('User not in chat')
@@ -187,8 +208,8 @@ class ChatService:
             chat_in.chat_id
         )
         try:
-            if chat_in.name:
-                existing_chat.name = chat_in.name
+            if chat_in.chat_name:
+                existing_chat.name = chat_in.chat_name
                 await self.db.commit()
                 await self.db.refresh(existing_chat, attribute_names=['name'])
                 await self.redis.delete_pattern(redis_key)
@@ -200,14 +221,16 @@ class ChatService:
             await self.db.rollback()
             raise
 
-    async def _get_and_validate_chat_with_participants(self, chat_id: int):
+    async def _get_and_validate_chat_with_participants(
+            self, chat_id: int, current_user_id: int
+    ):
         existing_chat = await self.chat_repository.get_chat_with_users(
             chat_id
         )
         if not existing_chat:
             raise ChatValidationError('Chat not found')
 
-        if self.current_user_id not in [
+        if current_user_id not in [
             p.user_id for p in existing_chat.participants
         ]:
             raise ChatValidationError('User not in chat')

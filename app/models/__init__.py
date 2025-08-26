@@ -6,3 +6,4 @@ from .chat_read_status import ChatReadStatus  # noqa: F401
 from .scheduled_message import ScheduledMessage  # noqa: F401
 from .refresh_token import RefreshToken  # noqa: F401
 from .message_delivery import MessageDelivery  # noqa: F401
+from .contact import Contact # noqa: F401

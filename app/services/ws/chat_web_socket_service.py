@@ -4,21 +4,28 @@ from starlette.websockets import WebSocket
 
 from logging import getLogger
 
+from app.infrastructure.cache.redis_pubsub import RedisPubSub
 from app.infrastructure.types.event import ServerToClientEvent, \
     ClientToServerEvent
 from app.models import Message
-from app.schemas.chat import ChatOverview, ChatWithName
+from app.schemas.chat import ChatOverview, ChatWithName, ChatCreate, \
+    StartNewChatIn
 from app.schemas.chat_read_status import ChatReadStatusRead, \
     ChatReadStatusUpdate
+from app.schemas.contact import ContactCreate
 from app.schemas.event import UndeliveredMessagesSentEvent, \
     ChatOverviewListSentEvent, GetChatInfoEvent, GetChatMessagesEvent
 from app.schemas.message import MessageRead, MessageCreate, ChatMessage
+from app.schemas.search import SearchIn
+from app.services.chat.chat_create_helper import ChatCreateHelper
 from app.services.chat.chat_info_service import ChatInfoService
 from app.services.chat.chat_query_service import ChatQueryService
 from app.services.chat_overview_service import ChatOverviewService
+from app.services.contact.contact_service import ContactService
 from app.services.message.chat_messages_constructor import \
     ChatMessagesConstructor
 from app.services.message_delivery_service import MessageDeliveryService
+from app.services.search.search_service import SearchService
 from app.services.ws.chat_read_service import ChatReadService
 from app.services.ws.dispatchers.websocket_event_dispatcher import \
     ChatWebSocketEventDispatcher
@@ -40,7 +47,8 @@ class ChatWebSocketService:
     def __init__(
             self,
             websocket: WebSocket,
-            subscription_service: RedisChatSubscriptionService,
+            pubsub: RedisPubSub,
+            redis_subscription_service: RedisChatSubscriptionService,
             chat_read_service: ChatReadService,
             chat_query_service: ChatQueryService,
             chat_overview_service: ChatOverviewService,
@@ -48,27 +56,38 @@ class ChatWebSocketService:
             message_handler: MessageWebSocketHandler,
             chat_info_service: ChatInfoService,
             chat_message_constructor: ChatMessagesConstructor,
+            search_service: SearchService,
+            redis_event_dispatcher: ChatRedisEventDispatcher,
+            chat_create_helper: ChatCreateHelper,
+            contact_service: ContactService
     ):
         self.websocket = websocket
         self.event_sender = EventSender(websocket)
-        self.subscription_service = subscription_service
+        self.redis_subscription_service = redis_subscription_service
         self.message_handler = message_handler
         self.message_delivery_service = message_delivery_service
         self.chat_query_service = chat_query_service
         self.chat_overview_service = chat_overview_service
         self.chat_info_service = chat_info_service
-        self.redis_dispatcher = ChatRedisEventDispatcher()
+        self.search_service = search_service
+        self.redis_dispatcher = redis_event_dispatcher
+        self.chat_create_helper = chat_create_helper
         self.websocket_dispatcher = ChatWebSocketEventDispatcher()
         self.websocket_event_handler = WebSocketEventHandler(
             message_handler=self.message_handler,
             chat_message_constructor = chat_message_constructor,
             chat_read_service=chat_read_service,
             chat_info_service=self.chat_info_service,
-            event_sender=self.event_sender
+            event_sender=self.event_sender,
+            search_service=self.search_service,
+            pubsub=pubsub,
+            chat_create_helper=chat_create_helper,
+            contact_service=contact_service
         )
         self.redis_event_handler = RedisEventHandler(
             websocket=self.websocket,
             event_sender=self.event_sender,
+            redis_subscription_service=self.redis_subscription_service,
         )
 
     async def start(self, user_id: int):
@@ -81,10 +100,15 @@ class ChatWebSocketService:
 
         await self.handle_reconnect(user_id, chats_with_names, chat_ids)
 
-        await self.subscription_service.subscribe_to_every_chat(
+        await self.redis_subscription_service.subscribe_to_every_chat(
             user_id,
             chat_ids,
-            callback=self.redis_dispatcher.dispatch
+        )
+        current_user_channel = f'user:{user_id}'
+        await (
+            self.redis_subscription_service.subscribe_to_channel(
+                current_user_channel, user_id
+            )
         )
 
     async def register_handlers(self):
@@ -98,6 +122,12 @@ class ChatWebSocketService:
             dto_class=ChatReadStatusRead,
             handler=self.redis_event_handler.handle_read_status_updated
         )
+        await self.redis_dispatcher.register(
+            event=ServerToClientEvent.NEW_CHAT_SENT,
+            dto_class=ChatOverview,
+            handler=self.redis_event_handler.handle_new_chat_sent
+        )
+
 
         await self.websocket_dispatcher.register(
             event=ClientToServerEvent.NEW_MESSAGE,
@@ -119,6 +149,31 @@ class ChatWebSocketService:
             dto_class=GetChatMessagesEvent,
             handler=self.websocket_event_handler.handle_get_chat_messages
         )
+        await self.websocket_dispatcher.register(
+            event=ClientToServerEvent.CREATE_CHAT,
+            dto_class=ChatCreate,
+            handler=self.websocket_event_handler.handle_create_chat
+        )
+        await self.websocket_dispatcher.register(
+            event=ClientToServerEvent.SEARCH,
+            dto_class=SearchIn,
+            handler=self.websocket_event_handler.handle_search
+        )
+        await self.websocket_dispatcher.register(
+            event=ClientToServerEvent.START_NEW_CHAT,
+            dto_class=StartNewChatIn,
+            handler=self.websocket_event_handler.handle_start_new_chat
+        )
+        await self.websocket_dispatcher.register(
+            event=ClientToServerEvent.ADD_TO_CONTACTS,
+            dto_class=ContactCreate,
+            handler=self.websocket_event_handler.handle_add_to_contacts
+        )
+        await self.websocket_dispatcher.register(
+            event=ClientToServerEvent.GET_CONTACTS,
+            handler=self.websocket_event_handler.handle_get_contacts
+        )
+
 
     async def handle_reconnect(
             self, user_id: int, chats: list[ChatWithName], chat_ids: list[int]
@@ -167,4 +222,4 @@ class ChatWebSocketService:
         )
 
     async def stop(self):
-        await self.subscription_service.cleanup()
+        await self.redis_subscription_service.cleanup()

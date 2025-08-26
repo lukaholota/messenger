@@ -53,7 +53,7 @@ class ChatAddParticipants(BaseModel):
 class ChatOverview(BaseModel):
     chat_id: int
     chat_name: str
-    last_message: MessageInChatOverview
+    last_message: MessageInChatOverview | None
     unread_count: int
 
 class ChatInfo(BaseModel):
@@ -70,3 +70,7 @@ class ChatWithName(BaseModel):
     class Config:
         from_attributes = True
         arbitrary_types_allowed = True
+
+class StartNewChatIn(BaseModel):
+    target_user_id: int
+    content: str

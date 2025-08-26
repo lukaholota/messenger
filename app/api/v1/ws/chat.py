@@ -51,7 +51,8 @@ async def chat_websocket(
 
             chat_service = ChatWebSocketService(
                 websocket=websocket,
-                subscription_service=container
+                pubsub=container.pubsub,
+                redis_subscription_service=container
                     .redis_chat_subscription_service,
                 message_delivery_service=container
                     .message_delivery_service,
@@ -61,6 +62,10 @@ async def chat_websocket(
                 chat_read_service=container.chat_read_service,
                 chat_info_service=container.chat_info_service,
                 chat_message_constructor=container.chat_message_constructor,
+                search_service=container.search_service,
+                redis_event_dispatcher=container.redis_event_dispatcher,
+                chat_create_helper=container.chat_create_helper,
+                contact_service=container.contact_service,
             )
         except WebSocketException as e:
             logger.warning(f"WebSocket connection failed: {e.message}")

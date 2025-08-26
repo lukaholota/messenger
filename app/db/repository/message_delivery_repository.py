@@ -1,3 +1,5 @@
+from typing import List, Dict
+
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 
@@ -27,16 +29,12 @@ class MessageDeliveryRepository(
         return message_delivery
 
     async def create_message_deliveries_bulk(
-            self, user_ids: list[int], message_id: int, chat_id: int
+            self, deliveries: List[Dict]
     ):
-        deliveries = [
-            MessageDelivery(
-                user_id=user_id,
-                message_id=message_id,
-                chat_id=chat_id,
-            ) for user_id in user_ids
+        delivery_objects = [
+            MessageDelivery(**delivery) for delivery in deliveries
         ]
-        self.db.add_all(deliveries)
+        self.db.add_all(delivery_objects)
 
     async def get_undelivered_messages_with_content(self, user_id: int):
         query = (

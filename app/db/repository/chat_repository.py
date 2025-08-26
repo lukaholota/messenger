@@ -1,3 +1,5 @@
+from typing import Dict
+
 from sqlalchemy import select, asc, delete, and_
 from sqlalchemy.orm import selectinload
 
@@ -12,7 +14,7 @@ class ChatRepository(BaseRepository[ChatModel, ChatCreate, ChatUpdate]):
     async def create_chat_with_participants(
             self,
             *,
-            name: str,
+            chat_name_map: Dict[int, str],
             is_group: bool,
             users_to_add: list[UserModel]
     ) -> ChatModel:
@@ -27,15 +29,12 @@ class ChatRepository(BaseRepository[ChatModel, ChatCreate, ChatUpdate]):
             chat_participants.append(ChatParticipant(
                 user_id=user.user_id,
                 chat_id=new_chat.chat_id,
-                chat_name=name
+                chat_name=chat_name_map[user.user_id]
             ))
 
-        if users_to_add:
-            new_chat.participants.extend(users_to_add)
+        self.db.add_all(chat_participants)
 
         return new_chat
-
-        #TODO це жесть насправді, тут треба жоско переробляти
 
     async def get_chat_by_participants_ids(
             self,

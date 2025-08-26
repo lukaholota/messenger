@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import List, Dict
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,10 +22,10 @@ class MessageDeliveryService:
         )
 
     async def create_message_deliveries_bulk(
-            self, user_ids: list[int], message_id: int, chat_id: int
+            self, deliveries: List[Dict]
     ):
         await self.message_delivery_repository.create_message_deliveries_bulk(
-            user_ids=user_ids, message_id=message_id, chat_id=chat_id
+            deliveries=deliveries
         )
 
     async def mark_messages_delivered(self, user_id):

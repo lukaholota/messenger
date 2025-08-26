@@ -81,3 +81,9 @@ class UserDelete(UserBase):
     user_id: int
     username: str
     email: EmailStr
+
+class SearchUser(UserBase):
+    user_id: int
+    display_name: str
+    username: str
+    is_contact: bool

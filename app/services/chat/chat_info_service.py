@@ -1,4 +1,4 @@
-from app.schemas.chat import ChatInfo
+from app.schemas.chat import ChatInfo, ChatWithName
 from app.schemas.user import UserRead
 from app.services.chat.chat_query_service import ChatQueryService
 
@@ -36,3 +36,20 @@ class ChatInfoService:
             for participant in participants
         }
         return participant_map[user_id].chat_name
+
+    async def construct_chat_info(
+            self, chat_with_name: ChatWithName, user_id: int
+    ) -> ChatInfo:
+        chat = chat_with_name.chat
+        participants = chat.participants
+
+        return ChatInfo(
+            chat_id=chat.chat_id,
+            chat_name=chat_with_name.chat_name,
+            participant_count=len(participants),
+            is_group=chat.is_group,
+            participants=[
+                UserRead.model_validate(user)
+                for user in participants
+            ]
+        )

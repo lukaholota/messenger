@@ -20,7 +20,7 @@ async def create_chat(
         chat_in: ChatCreate,
         chat_service: ChatService = Depends(get_chat_service)
 ) -> ChatRead:
-    new_chat = await chat_service.create_chat(chat_in)
+    new_chat = await chat_service.create_chat_in_db(chat_in)
     return new_chat
 
 

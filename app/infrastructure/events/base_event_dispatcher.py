@@ -15,9 +15,9 @@ class BaseEventDispatcher(ABC):
 
     async def register(
             self,
-            event: str, 
-            dto_class: Type[BaseModel],
-            handler: EventCallback
+            event: str,
+            handler: EventCallback,
+            dto_class: Type[BaseModel] | None = None,
     ):
         self._handlers[event] = EventHandlerConfig(dto_class, handler)
 

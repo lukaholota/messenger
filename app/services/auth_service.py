@@ -36,7 +36,7 @@ class AuthService:
             token_payload = decode_jwt_token(refresh_token)
         except ExpiredSignatureError:
             raise HTTPException(
-                status_code=403,
+                status_code=401,
                 detail="Refresh token has expired",
                 headers={"WWW-Authenticate": "Bearer"},
             )
